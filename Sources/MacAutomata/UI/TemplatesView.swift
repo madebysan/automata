@@ -82,7 +82,8 @@ class TemplatesView: NSView {
         y += 44
 
         // Template groups with collapsible sections
-        for group in TemplateLibrary.grouped {
+        let grouped = TemplateLibrary.grouped
+        for (groupIndex, group) in grouped.enumerated() {
             let catKey = group.category.rawValue
             let isExpanded = expandedCategories.contains(catKey)
             let templates = group.templates
@@ -123,7 +124,8 @@ class TemplatesView: NSView {
                 toggleBtn.font = Styles.captionFont
                 toggleBtn.contentTintColor = Styles.accentColor
                 toggleBtn.translatesAutoresizingMaskIntoConstraints = false
-                objc_setAssociatedObject(toggleBtn, "catKey", catKey, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+                // Use tag with offset 1000 to avoid collision with template tags
+                toggleBtn.tag = 1000 + groupIndex
                 contentView.addSubview(toggleBtn)
                 NSLayoutConstraint.activate([
                     toggleBtn.topAnchor.constraint(equalTo: contentView.topAnchor, constant: y),
@@ -221,7 +223,10 @@ class TemplatesView: NSView {
     }
 
     @objc private func toggleSection(_ sender: NSButton) {
-        guard let catKey = objc_getAssociatedObject(sender, "catKey") as? String else { return }
+        let groupIndex = sender.tag - 1000
+        let grouped = TemplateLibrary.grouped
+        guard groupIndex >= 0 && groupIndex < grouped.count else { return }
+        let catKey = grouped[groupIndex].category.rawValue
         if expandedCategories.contains(catKey) {
             expandedCategories.remove(catKey)
         } else {
