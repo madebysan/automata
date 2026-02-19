@@ -126,7 +126,7 @@ class ManageWindowController: NSObject, NSWindowDelegate {
             return
         }
 
-        var y: CGFloat = 0
+        var y: CGFloat = 4
         for automation in automations {
             let card = makeCard(automation)
             card.translatesAutoresizingMaskIntoConstraints = false
@@ -136,7 +136,7 @@ class ManageWindowController: NSObject, NSWindowDelegate {
                 card.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: pad),
                 card.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -pad),
             ])
-            y += 94
+            y += 112  // Card height + 16pt gap between cards
         }
         let h = contentView.heightAnchor.constraint(equalToConstant: y + pad)
         h.priority = .defaultLow; h.isActive = true
