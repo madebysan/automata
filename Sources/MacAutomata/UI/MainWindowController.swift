@@ -78,7 +78,7 @@ class MainWindowController: NSObject, NSWindowDelegate {
 
         builder.onCancel = { [weak self] in
             // Go back to templates (unless editing an existing saved automation)
-            if automation != nil, ManifestService.shared.automation(byId: automation!.id) != nil {
+            if let a = automation, ManifestService.shared.automation(byId: a.id) != nil {
                 // Editing a saved automation — just close
                 self?.window?.close()
                 NSApp.setActivationPolicy(.accessory)

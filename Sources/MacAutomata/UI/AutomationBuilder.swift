@@ -467,7 +467,7 @@ class AutomationBuilder: NSView {
         var v = actionValues
         if !appCheckboxes.isEmpty {
             let selected = appCheckboxes.filter { $0.state == .on }.map { $0.title }
-            if !selected.isEmpty { v["apps"] = selected.joined(separator: ",") }
+            v["apps"] = selected.isEmpty ? "" : selected.joined(separator: ",")
         }
         if let text = urlTextView?.string, !text.isEmpty { v["urls"] = text }
         for (key, field) in textFields { v[key] = field.stringValue }
@@ -553,7 +553,7 @@ class AutomationBuilder: NSView {
                 showError("Please choose a folder to watch"); return
             }
         } else if selectedTrigger == .interval {
-            if Int(tc["interval"] ?? "") == nil || Int(tc["interval"] ?? "0")! <= 0 {
+            guard let intervalStr = tc["interval"], let mins = Int(intervalStr), mins > 0 else {
                 showError("Please enter a number of minutes (must be > 0)"); return
             }
         }

@@ -6,6 +6,7 @@ class ManageWindowController: NSObject, NSWindowDelegate {
     private var window: NSWindow?
     private weak var statusBar: StatusBarController?
     private var contentView: FlippedView?
+    private var childController: MainWindowController?  // Keep strong reference
 
     init(statusBar: StatusBarController) {
         self.statusBar = statusBar
@@ -230,10 +231,10 @@ class ManageWindowController: NSObject, NSWindowDelegate {
               let statusBar = statusBar else { return }
         window?.close()
         NSApp.setActivationPolicy(.accessory)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             let controller = MainWindowController(statusBar: statusBar)
+            self?.childController = controller
             controller.show(editing: automation)
-            objc_setAssociatedObject(statusBar, "editController", controller, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
 
@@ -256,10 +257,10 @@ class ManageWindowController: NSObject, NSWindowDelegate {
         guard let statusBar = statusBar else { return }
         window?.close()
         NSApp.setActivationPolicy(.accessory)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             let controller = MainWindowController(statusBar: statusBar)
+            self?.childController = controller
             controller.show()
-            objc_setAssociatedObject(statusBar, "addController", controller, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
 }

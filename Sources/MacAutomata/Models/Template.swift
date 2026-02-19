@@ -190,7 +190,7 @@ enum TemplateLibrary {
             triggerType: .interval,
             triggerConfig: ["interval": "60"],
             actionType: .showNotification,
-            actionConfig: ["message": "Drink water \u{1F4A7}"]
+            actionConfig: ["message": "Drink water!"]
         ),
         Template(
             id: "eye-break",

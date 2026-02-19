@@ -9,6 +9,9 @@ enum LaunchdService {
 
     /// Install an automation: write script, generate plist, load it.
     static func install(automation: Automation) -> Bool {
+        // Ensure directories exist
+        FileLocations.ensureDirectoriesExist()
+
         // Step 1: Write the script file
         guard let scriptPath = ScriptService.install(automation: automation) else {
             return false
