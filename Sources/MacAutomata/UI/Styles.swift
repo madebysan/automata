@@ -58,7 +58,7 @@ enum Styles {
 
     // MARK: - Window Sizes
 
-    static let mainWindowSize = NSSize(width: 520, height: 600)
+    static let mainWindowSize = NSSize(width: 520, height: 720)
     static let configSheetSize = NSSize(width: 480, height: 400)
 
     // MARK: - Helpers
