@@ -177,10 +177,12 @@ class ManageWindowController: NSObject, NSWindowDelegate {
         statusLbl.translatesAutoresizingMaskIntoConstraints = false
         inner.addSubview(statusLbl)
 
-        // Toggle (fix #5: use NSButton checkbox for clearer on/off)
-        let toggle = NSButton(checkboxWithTitle: automation.isEnabled ? "Active" : "Paused", target: self, action: #selector(toggleTapped(_:)))
+        // Toggle switch
+        let toggle = NSSwitch()
         toggle.state = automation.isEnabled ? .on : .off
-        toggle.font = Styles.captionFont
+        toggle.target = self
+        toggle.action = #selector(toggleTapped(_:))
+        toggle.controlSize = .mini
         toggle.translatesAutoresizingMaskIntoConstraints = false
         objc_setAssociatedObject(toggle, "aid", automation.id, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         inner.addSubview(toggle)
