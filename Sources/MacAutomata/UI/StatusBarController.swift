@@ -6,6 +6,7 @@ class StatusBarController {
     private var statusItem: NSStatusItem!
     private var mainWindowController: MainWindowController?
     private var manageWindowController: ManageWindowController?
+    private var aboutWindowController: AboutWindowController?
 
     init() {
         setupStatusItem()
@@ -67,6 +68,11 @@ class StatusBarController {
         }
 
         menu.addItem(.separator())
+
+        let aboutItem = menu.addItem(withTitle: "About Mac Automata", action: #selector(openAbout), keyEquivalent: "")
+        aboutItem.target = self
+
+        menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Mac Automata", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
 
         self.statusItem.menu = menu
@@ -95,5 +101,12 @@ class StatusBarController {
             manageWindowController = ManageWindowController(statusBar: self)
         }
         manageWindowController?.show()
+    }
+
+    @objc private func openAbout() {
+        if aboutWindowController == nil {
+            aboutWindowController = AboutWindowController()
+        }
+        aboutWindowController?.show()
     }
 }

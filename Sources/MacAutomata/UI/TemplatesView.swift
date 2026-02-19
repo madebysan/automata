@@ -1,17 +1,17 @@
 import Cocoa
 
 // Browse view showing pre-built automation templates grouped by category.
-// Each template card has an icon, name, subtitle, and a "+" button to add it.
-// Templates that need user input open the builder pre-filled.
-// Templates that are fully configured install immediately.
+// Each category shows 2 templates by default with a "Show more" toggle.
 class TemplatesView: NSView {
 
-    /// Called when a template is selected. The automation is ready to save
-    /// (if needsInput is false) or the builder should open (if true).
     var onTemplateSelected: ((Template) -> Void)?
-
-    /// Called when user taps "Custom Automation" to open a blank builder.
     var onCustom: (() -> Void)?
+
+    // Track which categories are expanded
+    private var expandedCategories: Set<String> = []
+    private var scrollView: NSScrollView!
+    private var contentView: FlippedView!
+    private let previewCount = 2 // Templates visible before "Show more"
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -21,26 +21,32 @@ class TemplatesView: NSView {
     required init?(coder: NSCoder) { fatalError() }
 
     private func setup() {
-        let scroll = NSScrollView()
-        scroll.translatesAutoresizingMaskIntoConstraints = false
-        scroll.hasVerticalScroller = true
-        scroll.borderType = .noBorder
-        scroll.drawsBackground = false
-        addSubview(scroll)
+        scrollView = NSScrollView()
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.hasVerticalScroller = true
+        scrollView.borderType = .noBorder
+        scrollView.drawsBackground = false
+        addSubview(scrollView)
 
-        let content = FlippedView()
-        content.translatesAutoresizingMaskIntoConstraints = false
-        scroll.documentView = content
+        contentView = FlippedView()
+        contentView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.documentView = contentView
 
         NSLayoutConstraint.activate([
-            scroll.topAnchor.constraint(equalTo: topAnchor),
-            scroll.leadingAnchor.constraint(equalTo: leadingAnchor),
-            scroll.trailingAnchor.constraint(equalTo: trailingAnchor),
-            scroll.bottomAnchor.constraint(equalTo: bottomAnchor),
-            content.leadingAnchor.constraint(equalTo: scroll.leadingAnchor),
-            content.trailingAnchor.constraint(equalTo: scroll.trailingAnchor),
-            content.widthAnchor.constraint(equalTo: scroll.widthAnchor),
+            scrollView.topAnchor.constraint(equalTo: topAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
+            contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
+            contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
         ])
+
+        rebuildContent()
+    }
+
+    private func rebuildContent() {
+        contentView.subviews.forEach { $0.removeFromSuperview() }
 
         let pad = Styles.windowPadding
         var y: CGFloat = pad
@@ -48,70 +54,94 @@ class TemplatesView: NSView {
         // Title
         let title = Styles.label("New Automation", font: Styles.titleFont)
         title.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(title)
+        contentView.addSubview(title)
         NSLayoutConstraint.activate([
-            title.topAnchor.constraint(equalTo: content.topAnchor, constant: y),
-            title.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: pad),
+            title.topAnchor.constraint(equalTo: contentView.topAnchor, constant: y),
+            title.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: pad),
         ])
         y += 32
 
         let subtitle = Styles.label("Pick a template or build your own.", font: Styles.captionFont, color: Styles.secondaryLabel)
         subtitle.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(subtitle)
+        contentView.addSubview(subtitle)
         NSLayoutConstraint.activate([
-            subtitle.topAnchor.constraint(equalTo: content.topAnchor, constant: y),
-            subtitle.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: pad),
+            subtitle.topAnchor.constraint(equalTo: contentView.topAnchor, constant: y),
+            subtitle.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: pad),
         ])
         y += 28
 
-        // Custom button at the top
+        // Custom button
         let customBtn = NSButton(title: "Build Custom Automation\u{2026}", target: self, action: #selector(customTapped))
         customBtn.bezelStyle = .rounded
         customBtn.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(customBtn)
+        contentView.addSubview(customBtn)
         NSLayoutConstraint.activate([
-            customBtn.topAnchor.constraint(equalTo: content.topAnchor, constant: y),
-            customBtn.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: pad),
+            customBtn.topAnchor.constraint(equalTo: contentView.topAnchor, constant: y),
+            customBtn.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: pad),
         ])
-        y += 40
+        y += 44
 
-        // Template groups
+        // Template groups with collapsible sections
         for group in TemplateLibrary.grouped {
+            let catKey = group.category.rawValue
+            let isExpanded = expandedCategories.contains(catKey)
+            let templates = group.templates
+            let visibleTemplates = isExpanded ? templates : Array(templates.prefix(previewCount))
+            let hiddenCount = templates.count - previewCount
+
             // Category header
-            let header = Styles.sectionHeader(group.category.rawValue)
+            let header = Styles.sectionHeader(catKey)
             header.translatesAutoresizingMaskIntoConstraints = false
-            content.addSubview(header)
+            contentView.addSubview(header)
             NSLayoutConstraint.activate([
-                header.topAnchor.constraint(equalTo: content.topAnchor, constant: y),
-                header.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: pad),
+                header.topAnchor.constraint(equalTo: contentView.topAnchor, constant: y),
+                header.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: pad),
             ])
             y += 22
 
-            // Template cards
-            for template in group.templates {
+            // Visible template cards
+            for template in visibleTemplates {
                 let card = makeTemplateCard(template)
                 card.translatesAutoresizingMaskIntoConstraints = false
-                content.addSubview(card)
+                contentView.addSubview(card)
                 NSLayoutConstraint.activate([
-                    card.topAnchor.constraint(equalTo: content.topAnchor, constant: y),
-                    card.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: pad),
-                    card.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -pad),
+                    card.topAnchor.constraint(equalTo: contentView.topAnchor, constant: y),
+                    card.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: pad),
+                    card.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -pad),
                     card.heightAnchor.constraint(equalToConstant: 52),
                 ])
                 y += 56
             }
 
-            y += 8 // Extra spacing between categories
+            // "Show more" / "Show less" button
+            if hiddenCount > 0 {
+                let toggleTitle = isExpanded
+                    ? "Show less"
+                    : "Show \(hiddenCount) more\u{2026}"
+                let toggleBtn = NSButton(title: toggleTitle, target: self, action: #selector(toggleSection(_:)))
+                toggleBtn.bezelStyle = .inline
+                toggleBtn.font = Styles.captionFont
+                toggleBtn.contentTintColor = Styles.accentColor
+                toggleBtn.translatesAutoresizingMaskIntoConstraints = false
+                objc_setAssociatedObject(toggleBtn, "catKey", catKey, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+                contentView.addSubview(toggleBtn)
+                NSLayoutConstraint.activate([
+                    toggleBtn.topAnchor.constraint(equalTo: contentView.topAnchor, constant: y),
+                    toggleBtn.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: pad + 42),
+                ])
+                y += 24
+            }
+
+            y += 12
         }
 
         y += pad
-        let h = content.heightAnchor.constraint(equalToConstant: y)
+        let h = contentView.heightAnchor.constraint(equalToConstant: y)
         h.priority = .defaultLow
         h.isActive = true
     }
 
     private func makeTemplateCard(_ template: Template) -> NSView {
-        // Clickable card
         let card = NSButton()
         card.bezelStyle = .roundRect
         card.isBordered = false
@@ -136,17 +166,14 @@ class TemplatesView: NSView {
         iconView.translatesAutoresizingMaskIntoConstraints = false
         iconBg.addSubview(iconView)
 
-        // Name
         let nameLabel = Styles.label(template.name, font: Styles.headlineFont)
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
         card.addSubview(nameLabel)
 
-        // Subtitle
         let subLabel = Styles.label(template.subtitle, font: Styles.captionFont, color: Styles.secondaryLabel)
         subLabel.translatesAutoresizingMaskIntoConstraints = false
         card.addSubview(subLabel)
 
-        // Plus button
         let plusBtn = NSButton(image: NSImage(systemSymbolName: "plus.circle.fill", accessibilityDescription: "Add")!, target: self, action: #selector(templateTapped(_:)))
         plusBtn.bezelStyle = .inline
         plusBtn.isBordered = false
@@ -156,7 +183,6 @@ class TemplatesView: NSView {
         plusBtn.tag = idx
         card.addSubview(plusBtn)
 
-        // Also make the whole card clickable
         card.target = self
         card.action = #selector(templateTapped(_:))
         card.tag = idx
@@ -192,6 +218,16 @@ class TemplatesView: NSView {
         let idx = sender.tag
         guard idx >= 0 && idx < TemplateLibrary.all.count else { return }
         onTemplateSelected?(TemplateLibrary.all[idx])
+    }
+
+    @objc private func toggleSection(_ sender: NSButton) {
+        guard let catKey = objc_getAssociatedObject(sender, "catKey") as? String else { return }
+        if expandedCategories.contains(catKey) {
+            expandedCategories.remove(catKey)
+        } else {
+            expandedCategories.insert(catKey)
+        }
+        rebuildContent()
     }
 
     @objc private func customTapped() {
