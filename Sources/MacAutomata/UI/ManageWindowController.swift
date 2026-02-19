@@ -14,7 +14,7 @@ class ManageWindowController: NSObject, NSWindowDelegate {
     }
 
     func show() {
-        NSApp.setActivationPolicy(.regular)
+        NSApp.setActivationPolicy(.accessory)
 
         if let w = window {
             rebuildList()
@@ -144,10 +144,13 @@ class ManageWindowController: NSObject, NSWindowDelegate {
 
     private func makeCard(_ automation: Automation) -> NSView {
         let card = NSBox()
-        card.boxType = .custom; card.cornerRadius = Styles.cardCornerRadius
+        card.boxType = .custom
+        card.cornerRadius = Styles.cardCornerRadius
         card.fillColor = Styles.cardBackground
-        card.borderColor = Styles.separator.withAlphaComponent(0.3); card.borderWidth = 0.5
-        card.titlePosition = .noTitle; card.contentViewMargins = .zero
+        card.borderColor = Styles.separator.withAlphaComponent(0.4)
+        card.borderWidth = 0.5
+        card.titlePosition = .noTitle
+        card.contentViewMargins = .zero
 
         guard let inner = card.contentView else { return card }
         let cp: CGFloat = 14
@@ -174,42 +177,51 @@ class ManageWindowController: NSObject, NSWindowDelegate {
         statusLbl.translatesAutoresizingMaskIntoConstraints = false
         inner.addSubview(statusLbl)
 
-        // Toggle
-        let toggle = NSSwitch()
+        // Toggle (fix #5: use NSButton checkbox for clearer on/off)
+        let toggle = NSButton(checkboxWithTitle: automation.isEnabled ? "Active" : "Paused", target: self, action: #selector(toggleTapped(_:)))
         toggle.state = automation.isEnabled ? .on : .off
-        toggle.target = self; toggle.action = #selector(toggleTapped(_:))
-        toggle.controlSize = .small; toggle.translatesAutoresizingMaskIntoConstraints = false
+        toggle.font = Styles.captionFont
+        toggle.translatesAutoresizingMaskIntoConstraints = false
         objc_setAssociatedObject(toggle, "aid", automation.id, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         inner.addSubview(toggle)
 
-        // Edit + Delete
-        let editBtn = NSButton(image: NSImage(systemSymbolName: "pencil", accessibilityDescription: "Edit")!, target: self, action: #selector(editTapped(_:)))
-        editBtn.bezelStyle = .inline; editBtn.isBordered = false; editBtn.translatesAutoresizingMaskIntoConstraints = false
+        // Edit + Delete buttons with text labels (fix #9: visible, discoverable)
+        let editBtn = NSButton(title: "Edit", target: self, action: #selector(editTapped(_:)))
+        editBtn.bezelStyle = .rounded
+        editBtn.controlSize = .small
+        editBtn.translatesAutoresizingMaskIntoConstraints = false
         objc_setAssociatedObject(editBtn, "aid", automation.id, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         inner.addSubview(editBtn)
 
-        let delBtn = NSButton(image: NSImage(systemSymbolName: "trash", accessibilityDescription: "Delete")!, target: self, action: #selector(deleteTapped(_:)))
-        delBtn.bezelStyle = .inline; delBtn.isBordered = false; delBtn.contentTintColor = .systemRed; delBtn.translatesAutoresizingMaskIntoConstraints = false
+        let delBtn = NSButton(title: "Delete", target: self, action: #selector(deleteTapped(_:)))
+        delBtn.bezelStyle = .rounded
+        delBtn.controlSize = .small
+        delBtn.contentTintColor = .systemRed
+        delBtn.translatesAutoresizingMaskIntoConstraints = false
         objc_setAssociatedObject(delBtn, "aid", automation.id, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         inner.addSubview(delBtn)
 
         NSLayoutConstraint.activate([
             iconView.leadingAnchor.constraint(equalTo: inner.leadingAnchor, constant: cp),
-            iconView.centerYAnchor.constraint(equalTo: inner.centerYAnchor),
+            iconView.topAnchor.constraint(equalTo: inner.topAnchor, constant: cp + 4),
             iconView.widthAnchor.constraint(equalToConstant: 32),
+
             sentenceLbl.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 12),
             sentenceLbl.topAnchor.constraint(equalTo: inner.topAnchor, constant: cp),
             sentenceLbl.trailingAnchor.constraint(lessThanOrEqualTo: toggle.leadingAnchor, constant: -12),
+
             statusLbl.leadingAnchor.constraint(equalTo: sentenceLbl.leadingAnchor),
             statusLbl.topAnchor.constraint(equalTo: sentenceLbl.bottomAnchor, constant: 3),
+
             editBtn.leadingAnchor.constraint(equalTo: sentenceLbl.leadingAnchor),
-            editBtn.topAnchor.constraint(equalTo: statusLbl.bottomAnchor, constant: 4),
-            editBtn.bottomAnchor.constraint(lessThanOrEqualTo: inner.bottomAnchor, constant: -cp),
+            editBtn.topAnchor.constraint(equalTo: statusLbl.bottomAnchor, constant: 8),
+            editBtn.bottomAnchor.constraint(equalTo: inner.bottomAnchor, constant: -cp),
+
             delBtn.leadingAnchor.constraint(equalTo: editBtn.trailingAnchor, constant: 8),
             delBtn.centerYAnchor.constraint(equalTo: editBtn.centerYAnchor),
+
             toggle.trailingAnchor.constraint(equalTo: inner.trailingAnchor, constant: -cp),
-            toggle.centerYAnchor.constraint(equalTo: inner.centerYAnchor),
-            card.heightAnchor.constraint(greaterThanOrEqualToConstant: 82),
+            toggle.topAnchor.constraint(equalTo: inner.topAnchor, constant: cp),
         ])
         return card
     }

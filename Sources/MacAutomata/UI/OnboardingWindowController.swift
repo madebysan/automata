@@ -17,10 +17,10 @@ class OnboardingWindowController: NSObject, NSWindowDelegate {
     }
 
     func show() {
-        NSApp.setActivationPolicy(.regular)
+        NSApp.setActivationPolicy(.accessory)
 
         let w = NSWindow(
-            contentRect: NSRect(origin: .zero, size: NSSize(width: 500, height: 480)),
+            contentRect: NSRect(origin: .zero, size: NSSize(width: 500, height: 560)),
             styleMask: [.titled, .closable],
             backing: .buffered, defer: false
         )
@@ -115,7 +115,22 @@ class OnboardingWindowController: NSObject, NSWindowDelegate {
             note.leadingAnchor.constraint(equalTo: outer.leadingAnchor, constant: pad),
             note.trailingAnchor.constraint(equalTo: outer.trailingAnchor, constant: -pad),
         ])
-        y += 48
+        y += 40
+
+        // Background activity warning
+        let bgNote = Styles.label(
+            "Heads up: macOS will show an \"App Background Activity\" notification the first time each automation is installed. This is normal \u{2014} it's how macOS tells you a new scheduled task was added. It only appears once per automation.",
+            font: Styles.captionFont, color: Styles.tertiaryLabel
+        )
+        bgNote.alignment = .center
+        bgNote.translatesAutoresizingMaskIntoConstraints = false
+        outer.addSubview(bgNote)
+        NSLayoutConstraint.activate([
+            bgNote.topAnchor.constraint(equalTo: outer.topAnchor, constant: y),
+            bgNote.leadingAnchor.constraint(equalTo: outer.leadingAnchor, constant: pad),
+            bgNote.trailingAnchor.constraint(equalTo: outer.trailingAnchor, constant: -pad),
+        ])
+        y += 52
 
         // Get Started button
         let startButton = Styles.accentButton("Get Started", target: self, action: #selector(getStarted))

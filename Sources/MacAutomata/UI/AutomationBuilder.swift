@@ -76,13 +76,13 @@ class AutomationBuilder: NSView {
         let pad = Styles.windowPadding
         var y: CGFloat = pad
 
-        // Cancel button (top-left)
-        let cancelBtn = NSButton(title: "Cancel", target: self, action: #selector(cancelTapped))
-        cancelBtn.bezelStyle = .inline
+        // Cancel button — proper rounded style so it's visible (fix #8)
+        let cancelBtn = NSButton(title: "\u{2190} Back", target: self, action: #selector(cancelTapped))
+        cancelBtn.bezelStyle = .rounded
         cancelBtn.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(cancelBtn)
         pin(cancelBtn, in: content, top: y, leading: pad)
-        y += 30
+        y += 36
 
         // Title
         let titleText = editing != nil ? "Edit Automation" : "New Automation"
@@ -90,14 +90,14 @@ class AutomationBuilder: NSView {
         title.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(title)
         pin(title, in: content, top: y, leading: pad, trailing: -pad)
-        y += 40
+        y += 44
 
-        // ── WHEN section ──
-        let whenHeader = Styles.sectionHeader("When")
-        whenHeader.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(whenHeader)
-        pin(whenHeader, in: content, top: y, leading: pad)
-        y += 20
+        // ── WHEN section ── (fix #1: bigger, bolder, visible label)
+        let whenLabel = Styles.label("When", font: NSFont.systemFont(ofSize: 15, weight: .semibold), color: .secondaryLabelColor)
+        whenLabel.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(whenLabel)
+        pin(whenLabel, in: content, top: y, leading: pad)
+        y += 24
 
         triggerDropdown = NSPopUpButton(frame: .zero, pullsDown: false)
         triggerDropdown.removeAllItems()
@@ -127,14 +127,26 @@ class AutomationBuilder: NSView {
         ])
 
         buildTriggerFields()
-        y += estimateFieldsHeight(selectedTrigger.fields) + 20
+        y += estimateFieldsHeight(selectedTrigger.fields) + 16
 
-        // ── DO THIS section ──
-        let doHeader = Styles.sectionHeader("Do this")
-        doHeader.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(doHeader)
-        pin(doHeader, in: content, top: y, leading: pad)
-        y += 20
+        // ── Divider between sections (fix #7) ──
+        let divider = NSBox()
+        divider.boxType = .separator
+        divider.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(divider)
+        NSLayoutConstraint.activate([
+            divider.topAnchor.constraint(equalTo: content.topAnchor, constant: y),
+            divider.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: pad),
+            divider.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -pad),
+        ])
+        y += 16
+
+        // ── DO THIS section ── (fix #1: bigger, bolder, visible label)
+        let doLabel = Styles.label("Do this", font: NSFont.systemFont(ofSize: 15, weight: .semibold), color: .secondaryLabelColor)
+        doLabel.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(doLabel)
+        pin(doLabel, in: content, top: y, leading: pad)
+        y += 24
 
         actionDropdown = NSPopUpButton(frame: .zero, pullsDown: false)
         actionDropdown.removeAllItems()
@@ -175,29 +187,57 @@ class AutomationBuilder: NSView {
         y += 16
 
         // ── Preview ──
-        let previewHeader = Styles.sectionHeader("Preview")
-        previewHeader.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(previewHeader)
-        pin(previewHeader, in: content, top: y, leading: pad)
-        y += 20
+        let previewLabel = Styles.label("Preview", font: NSFont.systemFont(ofSize: 15, weight: .semibold), color: .secondaryLabelColor)
+        previewLabel.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(previewLabel)
+        pin(previewLabel, in: content, top: y, leading: pad)
+        y += 24
+
+        // Preview sentence in a card (fix #4 context — makes the sentence prominent)
+        let previewCard = NSBox()
+        previewCard.boxType = .custom
+        previewCard.cornerRadius = 8
+        previewCard.fillColor = NSColor.controlBackgroundColor
+        previewCard.borderColor = NSColor.separatorColor.withAlphaComponent(0.3)
+        previewCard.borderWidth = 0.5
+        previewCard.titlePosition = .noTitle
+        previewCard.contentViewMargins = NSSize(width: 14, height: 10)
+        previewCard.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(previewCard)
 
         sentenceLabel = Styles.label("", font: NSFont.systemFont(ofSize: 14, weight: .medium))
         sentenceLabel.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(sentenceLabel)
-        pin(sentenceLabel, in: content, top: y, leading: pad, trailing: -pad)
-        y += 40
+        previewCard.contentView?.addSubview(sentenceLabel)
+        if let cv = previewCard.contentView {
+            NSLayoutConstraint.activate([
+                sentenceLabel.topAnchor.constraint(equalTo: cv.topAnchor),
+                sentenceLabel.leadingAnchor.constraint(equalTo: cv.leadingAnchor),
+                sentenceLabel.trailingAnchor.constraint(equalTo: cv.trailingAnchor),
+                sentenceLabel.bottomAnchor.constraint(equalTo: cv.bottomAnchor),
+            ])
+        }
+        NSLayoutConstraint.activate([
+            previewCard.topAnchor.constraint(equalTo: content.topAnchor, constant: y),
+            previewCard.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: pad),
+            previewCard.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -pad),
+        ])
+        y += 52
 
-        // ── Save button ──
+        // ── Save button (fix #4: wider, more prominent) ──
         let saveTitle = editing != nil ? "Update Automation" : "Save Automation"
-        let saveBtn = Styles.accentButton(saveTitle, target: self, action: #selector(saveTapped))
+        let saveBtn = NSButton(title: saveTitle, target: self, action: #selector(saveTapped))
+        saveBtn.bezelStyle = .rounded
+        saveBtn.controlSize = .large
+        saveBtn.keyEquivalent = "\r"
         saveBtn.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(saveBtn)
         NSLayoutConstraint.activate([
             saveBtn.topAnchor.constraint(equalTo: content.topAnchor, constant: y),
-            saveBtn.centerXAnchor.constraint(equalTo: content.centerXAnchor),
-            saveBtn.widthAnchor.constraint(equalToConstant: 200),
+            saveBtn.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: pad),
+            saveBtn.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -pad),
+            saveBtn.heightAnchor.constraint(equalToConstant: 36),
         ])
-        y += 60
+        y += 56
 
         let h = content.heightAnchor.constraint(equalToConstant: y)
         h.priority = .defaultLow
@@ -216,7 +256,7 @@ class AutomationBuilder: NSView {
             triggerFieldsContainer.addArrangedSubview(view)
         }
         if selectedTrigger.fields.isEmpty {
-            let hint = Styles.label("No configuration needed.", font: Styles.captionFont, color: Styles.tertiaryLabel)
+            let hint = Styles.label("No configuration needed.", font: Styles.bodyFont, color: Styles.tertiaryLabel)
             triggerFieldsContainer.addArrangedSubview(hint)
         }
     }
@@ -229,7 +269,7 @@ class AutomationBuilder: NSView {
             actionFieldsContainer.addArrangedSubview(view)
         }
         if selectedAction.fields.isEmpty {
-            let hint = Styles.label("No configuration needed.", font: Styles.captionFont, color: Styles.tertiaryLabel)
+            let hint = Styles.label("No configuration needed.", font: Styles.bodyFont, color: Styles.tertiaryLabel)
             actionFieldsContainer.addArrangedSubview(hint)
         }
     }
@@ -292,6 +332,7 @@ class AutomationBuilder: NSView {
         return row
     }
 
+    // Fix #3: wider spacing on weekday checkboxes
     private func makeWeekdayPicker(values: inout [String: String]) -> NSView {
         let names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
         let existing: Set<Int>
@@ -305,15 +346,16 @@ class AutomationBuilder: NSView {
         var btns: [NSView] = []
         for (i, name) in names.enumerated() {
             let b = NSButton(checkboxWithTitle: name, target: self, action: #selector(fieldChanged))
-            b.tag = i + 1; b.font = Styles.captionFont
+            b.tag = i + 1; b.font = Styles.bodyFont
             b.state = existing.contains(i + 1) ? .on : .off
             weekdayButtons.append(b); btns.append(b)
         }
         let row = NSStackView(views: btns)
-        row.orientation = .horizontal; row.spacing = 4
+        row.orientation = .horizontal; row.spacing = 10
         return row
     }
 
+    // Fix #2: app list with visible rounded border
     private func makeAppPicker(label: String, values: inout [String: String]) -> NSView {
         let apps = AppDiscoveryService.installedApps()
         let existing = Set((values["apps"] ?? "").split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) })
@@ -321,13 +363,17 @@ class AutomationBuilder: NSView {
 
         let scroll = NSScrollView()
         scroll.translatesAutoresizingMaskIntoConstraints = false
-        scroll.hasVerticalScroller = true; scroll.borderType = .bezelBorder; scroll.drawsBackground = true
+        scroll.hasVerticalScroller = true
+        scroll.borderType = .lineBorder
+        scroll.drawsBackground = true
+        scroll.wantsLayer = true
+        scroll.layer?.cornerRadius = 6
 
         let list = FlippedView()
         list.translatesAutoresizingMaskIntoConstraints = false
         scroll.documentView = list
 
-        var cy: CGFloat = 4
+        var cy: CGFloat = 6
         for name in apps {
             let cb = NSButton(checkboxWithTitle: name, target: self, action: #selector(fieldChanged))
             cb.font = Styles.bodyFont
@@ -336,15 +382,15 @@ class AutomationBuilder: NSView {
             list.addSubview(cb); appCheckboxes.append(cb)
             NSLayoutConstraint.activate([
                 cb.topAnchor.constraint(equalTo: list.topAnchor, constant: cy),
-                cb.leadingAnchor.constraint(equalTo: list.leadingAnchor, constant: 8),
+                cb.leadingAnchor.constraint(equalTo: list.leadingAnchor, constant: 10),
             ])
-            cy += 22
+            cy += 24
         }
-        let ch = list.heightAnchor.constraint(equalToConstant: cy + 4)
+        let ch = list.heightAnchor.constraint(equalToConstant: cy + 6)
         ch.priority = .defaultLow; ch.isActive = true
 
         NSLayoutConstraint.activate([
-            scroll.heightAnchor.constraint(equalToConstant: 140),
+            scroll.heightAnchor.constraint(equalToConstant: 150),
             list.leadingAnchor.constraint(equalTo: scroll.leadingAnchor),
             list.trailingAnchor.constraint(equalTo: scroll.trailingAnchor),
             list.widthAnchor.constraint(equalTo: scroll.widthAnchor),
@@ -358,7 +404,7 @@ class AutomationBuilder: NSView {
         let existing = values["filePath"] ?? ""
         let lbl = Styles.label(
             existing.isEmpty ? "No file selected" : (existing as NSString).lastPathComponent,
-            font: Styles.captionFont,
+            font: Styles.bodyFont,
             color: existing.isEmpty ? Styles.secondaryLabel : .labelColor
         )
         self.filePathLabel = lbl
@@ -374,7 +420,7 @@ class AutomationBuilder: NSView {
         let existing = values[key] ?? ""
         let lbl = Styles.label(
             existing.isEmpty ? "No folder selected" : (existing as NSString).lastPathComponent,
-            font: Styles.captionFont,
+            font: Styles.bodyFont,
             color: existing.isEmpty ? Styles.secondaryLabel : .labelColor
         )
         folderLabels[key] = lbl
@@ -386,7 +432,10 @@ class AutomationBuilder: NSView {
     private func makeURLList(label: String, values: inout [String: String]) -> NSView {
         let scroll = NSScrollView()
         scroll.translatesAutoresizingMaskIntoConstraints = false
-        scroll.hasVerticalScroller = true; scroll.borderType = .bezelBorder
+        scroll.hasVerticalScroller = true
+        scroll.borderType = .lineBorder
+        scroll.wantsLayer = true
+        scroll.layer?.cornerRadius = 6
         let tv = NSTextView()
         tv.font = Styles.bodyFont; tv.isEditable = true; tv.isRichText = false
         tv.string = values["urls"] ?? ""
@@ -406,7 +455,7 @@ class AutomationBuilder: NSView {
         numberFields[key] = field
         if values[key] == nil { values[key] = placeholder }
 
-        let unitLbl = Styles.label(unit, font: Styles.captionFont, color: Styles.secondaryLabel)
+        let unitLbl = Styles.label(unit, font: Styles.bodyFont, color: Styles.secondaryLabel)
         let row = NSStackView(views: [field, unitLbl])
         row.orientation = .horizontal; row.spacing = 8
         return row
@@ -472,7 +521,6 @@ class AutomationBuilder: NSView {
         if let text = urlTextView?.string, !text.isEmpty { v["urls"] = text }
         for (key, field) in textFields { v[key] = field.stringValue }
         for (key, field) in numberFields {
-            // Only collect if this key belongs to the action
             if selectedAction.fields.contains(where: { if case .numberInput(_, _, _, let k) = $0 { return k == key } else { return false } }) {
                 v[key] = field.stringValue
             }
@@ -529,7 +577,6 @@ class AutomationBuilder: NSView {
         let panel = NSOpenPanel()
         panel.canChooseFiles = false; panel.canChooseDirectories = true; panel.allowsMultipleSelection = false
         if panel.runModal() == .OK, let url = panel.url {
-            // Determine if this is a trigger or action field
             if selectedTrigger.fields.contains(where: { if case .folderPicker(_, let k) = $0 { return k == key } else { return false } }) {
                 triggerValues[key] = url.path
             } else {
@@ -547,7 +594,6 @@ class AutomationBuilder: NSView {
         let tc = collectTriggerValues()
         let ac = collectActionValues()
 
-        // Validate trigger
         if selectedTrigger == .fileAppears {
             if (tc["watchFolder"] ?? "").isEmpty {
                 showError("Please choose a folder to watch"); return
@@ -558,7 +604,6 @@ class AutomationBuilder: NSView {
             }
         }
 
-        // Validate action
         if let err = selectedAction.validate(config: ac) {
             showError(err); return
         }
@@ -594,7 +639,6 @@ class AutomationBuilder: NSView {
             appCheckboxes = []; filePathLabel = nil; urlTextView = nil
             textFields = [:]; dropdowns = [:]
         }
-        // Number fields and folder labels may belong to either
         if forTrigger {
             numberFields = numberFields.filter { key, _ in
                 !selectedTrigger.fields.contains(where: { if case .numberInput(_, _, _, let k) = $0 { return k == key } else { return false } })
@@ -617,13 +661,13 @@ class AutomationBuilder: NSView {
         var h: CGFloat = 0
         for f in fields {
             switch f {
-            case .timePicker: h += 30
-            case .weekdayPicker: h += 28
-            case .appPicker: h += 150
-            case .filePicker, .folderPicker: h += 30
+            case .timePicker: h += 34
+            case .weekdayPicker: h += 30
+            case .appPicker: h += 160
+            case .filePicker, .folderPicker: h += 34
             case .urlList: h += 80
-            case .numberInput, .textInput: h += 30
-            case .dropdown: h += 30
+            case .numberInput, .textInput: h += 34
+            case .dropdown: h += 34
             }
         }
         return h

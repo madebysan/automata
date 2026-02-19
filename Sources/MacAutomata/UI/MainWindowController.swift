@@ -15,7 +15,7 @@ class MainWindowController: NSObject, NSWindowDelegate {
     }
 
     func show(editing automation: Automation? = nil) {
-        NSApp.setActivationPolicy(.regular)
+        NSApp.setActivationPolicy(.accessory)
 
         let w = window ?? {
             let w = NSWindow(
