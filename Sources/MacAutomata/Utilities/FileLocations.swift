@@ -41,22 +41,16 @@ enum FileLocations {
         logsDir.appendingPathComponent("activity.log")
     }()
 
-    // MARK: - Dynamic paths
+    // MARK: - Dynamic paths (automation-aware)
 
-    /// Plist path for a given automation: ~/Library/LaunchAgents/com.macautomata.{type}-{id}.plist
-    static func plistPath(type: String, id: String) -> URL {
-        let label = plistLabel(type: type, id: id)
-        return launchAgentsDir.appendingPathComponent("\(label).plist")
+    /// Plist URL for an automation.
+    static func plistURL(for automation: Automation) -> URL {
+        launchAgentsDir.appendingPathComponent("\(automation.plistLabel).plist")
     }
 
-    /// The launchd label for an automation: com.macautomata.{type}-{id}
-    static func plistLabel(type: String, id: String) -> String {
-        "com.macautomata.\(type)-\(id)"
-    }
-
-    /// Script path: ~/.mac-automata/scripts/{type}-{id}.sh (or .scpt for AppleScript)
-    static func scriptPath(type: String, id: String, extension ext: String = "sh") -> URL {
-        scriptsDir.appendingPathComponent("\(type)-\(id).\(ext)")
+    /// Script URL for an automation.
+    static func scriptURL(for automation: Automation, extension ext: String) -> URL {
+        scriptsDir.appendingPathComponent("\(automation.plistLabel).\(ext)")
     }
 
     // MARK: - Setup

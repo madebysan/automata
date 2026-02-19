@@ -1,11 +1,8 @@
 import Foundation
 
 // Manages launchd plists for automations.
-// Full lifecycle: generate plist XML -> write to ~/Library/LaunchAgents/ ->
+// Full lifecycle: generate plist -> write to ~/Library/LaunchAgents/ ->
 // launchctl load/unload -> clean up on delete.
-//
-// Uses legacy load/unload commands which still work on macOS 13+
-// and are simpler than bootstrap/bootout.
 enum LaunchdService {
 
     // MARK: - Install / Uninstall
@@ -17,21 +14,14 @@ enum LaunchdService {
             return false
         }
 
-        // Step 2: Build the plist dictionary
-        guard let recipe = RecipeRegistry.provider(for: automation.recipeType) else {
-            Log.error("No recipe for type: \(automation.recipeType.rawValue)")
-            return false
-        }
-
+        // Step 2: Build the plist
         let label = automation.plistLabel
-        let triggerEntries = recipe.plistTriggerEntries(config: automation.config)
+        let triggerEntries = automation.triggerType.plistEntries(config: automation.triggerConfig)
 
-        // Build ProgramArguments based on script type
         let programArgs: [String]
-        switch recipe.scriptKind {
-        case .appleScript:
+        if automation.actionType.isAppleScript {
             programArgs = ["/usr/bin/osascript", scriptPath.path]
-        case .shellScript:
+        } else {
             programArgs = ["/bin/bash", scriptPath.path]
         }
 
@@ -40,28 +30,22 @@ enum LaunchdService {
             "ProgramArguments": programArgs,
         ]
 
-        // Merge trigger-specific plist entries (StartCalendarInterval,
-        // WatchPaths, RunAtLoad, StartInterval, StartOnMount, etc.)
+        // Merge trigger-specific entries
         for (key, value) in triggerEntries {
             plist[key] = value
         }
 
-        // Add stdout/stderr logging
+        // Logging
         let logPath = FileLocations.logsDir.path + "/\(label).log"
         plist["StandardOutPath"] = logPath
         plist["StandardErrorPath"] = logPath
 
-        // Step 3: Write the plist file
-        let plistPath = FileLocations.plistPath(
-            type: automation.recipeType.rawValue,
-            id: automation.id
-        )
+        // Step 3: Write plist
+        let plistPath = FileLocations.plistURL(for: automation)
 
         do {
             let data = try PropertyListSerialization.data(
-                fromPropertyList: plist,
-                format: .xml,
-                options: 0
+                fromPropertyList: plist, format: .xml, options: 0
             )
             try data.write(to: plistPath, options: .atomic)
             Log.info("Wrote plist: \(plistPath.lastPathComponent)")
@@ -70,130 +54,80 @@ enum LaunchdService {
             return false
         }
 
-        // Step 4: Load it with launchctl
+        // Step 4: Load
         return launchctlLoad(plistPath: plistPath)
     }
 
-    /// Uninstall an automation: unload plist, delete plist and script files.
+    /// Uninstall an automation: unload plist, delete files.
     static func uninstall(automation: Automation) {
-        let plistPath = FileLocations.plistPath(
-            type: automation.recipeType.rawValue,
-            id: automation.id
-        )
-
-        // Unload first (ignore errors if not loaded)
+        let plistPath = FileLocations.plistURL(for: automation)
         launchctlUnload(plistPath: plistPath)
-
-        // Delete plist
         try? FileManager.default.removeItem(at: plistPath)
-        Log.info("Removed plist: \(plistPath.lastPathComponent)")
-
-        // Delete script
         ScriptService.uninstall(automation: automation)
+        Log.info("Uninstalled: \(automation.plistLabel)")
     }
 
     // MARK: - Enable / Disable
 
-    /// Enable an automation (load its existing plist).
     static func enable(automation: Automation) -> Bool {
-        let plistPath = FileLocations.plistPath(
-            type: automation.recipeType.rawValue,
-            id: automation.id
-        )
-        guard FileManager.default.fileExists(atPath: plistPath.path) else {
-            // Plist doesn't exist — need to do a full install
+        let plistPath = FileLocations.plistURL(for: automation)
+        if !FileManager.default.fileExists(atPath: plistPath.path) {
             return install(automation: automation)
         }
         return launchctlLoad(plistPath: plistPath)
     }
 
-    /// Disable an automation (unload plist but keep files).
     static func disable(automation: Automation) {
-        let plistPath = FileLocations.plistPath(
-            type: automation.recipeType.rawValue,
-            id: automation.id
-        )
-        launchctlUnload(plistPath: plistPath)
+        launchctlUnload(plistPath: FileLocations.plistURL(for: automation))
     }
 
-    // MARK: - Status
+    // MARK: - Bulk
 
-    /// Check if an automation's plist is currently loaded in launchd.
-    static func isLoaded(automation: Automation) -> Bool {
-        let label = automation.plistLabel
-        let output = runProcess("/bin/launchctl", arguments: ["list"])
-        return output.contains(label)
-    }
-
-    /// Remove ALL Mac Automata plists and scripts. Nuclear option.
     static func removeAll() {
         let fm = FileManager.default
         let prefix = "com.macautomata."
-
-        // Find and unload all our plists
-        if let files = try? fm.contentsOfDirectory(
-            at: FileLocations.launchAgentsDir,
-            includingPropertiesForKeys: nil
-        ) {
+        if let files = try? fm.contentsOfDirectory(at: FileLocations.launchAgentsDir, includingPropertiesForKeys: nil) {
             for file in files where file.lastPathComponent.hasPrefix(prefix) {
                 launchctlUnload(plistPath: file)
                 try? fm.removeItem(at: file)
-                Log.info("Removed plist: \(file.lastPathComponent)")
             }
         }
-
-        // Remove all scripts
-        if let files = try? fm.contentsOfDirectory(
-            at: FileLocations.scriptsDir,
-            includingPropertiesForKeys: nil
-        ) {
-            for file in files {
-                try? fm.removeItem(at: file)
-            }
+        if let files = try? fm.contentsOfDirectory(at: FileLocations.scriptsDir, includingPropertiesForKeys: nil) {
+            for file in files { try? fm.removeItem(at: file) }
         }
-
-        Log.info("Removed all Mac Automata automations")
+        Log.info("Removed all automations")
     }
 
-    // MARK: - Private helpers
+    // MARK: - Private
 
     @discardableResult
     private static func launchctlLoad(plistPath: URL) -> Bool {
         let output = runProcess("/bin/launchctl", arguments: ["load", plistPath.path])
-        if output.isEmpty || output.contains("service already loaded") {
+        if output.isEmpty || output.contains("already loaded") {
             Log.info("Loaded: \(plistPath.lastPathComponent)")
             return true
         }
-        Log.error("launchctl load failed: \(output)")
+        Log.error("launchctl load: \(output)")
         return false
     }
 
     private static func launchctlUnload(plistPath: URL) {
-        let output = runProcess("/bin/launchctl", arguments: ["unload", plistPath.path])
-        if output.isEmpty || output.contains("Could not find") {
-            Log.info("Unloaded: \(plistPath.lastPathComponent)")
-        } else {
-            Log.warn("launchctl unload: \(output)")
-        }
+        let _ = runProcess("/bin/launchctl", arguments: ["unload", plistPath.path])
     }
 
-    /// Run a process and capture its combined stdout+stderr output.
     private static func runProcess(_ path: String, arguments: [String]) -> String {
         let process = Process()
         let pipe = Pipe()
-
         process.executableURL = URL(fileURLWithPath: path)
         process.arguments = arguments
         process.standardOutput = pipe
         process.standardError = pipe
-
         do {
             try process.run()
             process.waitUntilExit()
         } catch {
-            return "Process error: \(error.localizedDescription)"
+            return "Error: \(error.localizedDescription)"
         }
-
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }

@@ -1,20 +1,19 @@
 import Foundation
 
-// One configured automation instance.
-// Example: "Open Xcode at 9am weekdays" is one Automation
-// backed by the OpenApps recipe with specific config values.
+// One configured automation: a trigger + an action.
+// Example: "Every weekday at 9am" (trigger) + "open Xcode" (action).
 struct Automation: Codable, Identifiable {
 
-    /// Unique identifier (short UUID, e.g. "a3f8b2")
+    /// Unique identifier (short hex string).
     let id: String
 
-    /// Which recipe this automation uses.
-    let recipeType: RecipeType
+    /// The "When" part.
+    let triggerType: TriggerType
+    var triggerConfig: [String: String]
 
-    /// User-provided configuration values.
-    /// Keys match the recipe's field definitions.
-    /// Example: ["apps": "Xcode,Figma", "hour": "9", "minute": "0", "weekdays": "1,2,3,4,5"]
-    var config: [String: String]
+    /// The "Do this" part.
+    let actionType: ActionType
+    var actionConfig: [String: String]
 
     /// Whether this automation is currently active (plist loaded).
     var isEnabled: Bool
@@ -22,35 +21,46 @@ struct Automation: Codable, Identifiable {
     /// When this automation was created.
     let createdAt: Date
 
-    /// When this automation last ran (updated by the activity log).
+    /// When this automation last ran.
     var lastRunAt: Date?
 
     /// Optional user-provided name. If nil, uses the auto-generated sentence.
     var customName: String?
 
     /// Create a new automation with a generated short ID.
-    init(recipeType: RecipeType, config: [String: String], customName: String? = nil) {
-        // 6-char hex ID — short enough for plist labels, unique enough for personal use
+    init(
+        triggerType: TriggerType,
+        triggerConfig: [String: String],
+        actionType: ActionType,
+        actionConfig: [String: String],
+        customName: String? = nil
+    ) {
         self.id = String(UUID().uuidString.prefix(8)).lowercased()
-        self.recipeType = recipeType
-        self.config = config
+        self.triggerType = triggerType
+        self.triggerConfig = triggerConfig
+        self.actionType = actionType
+        self.actionConfig = actionConfig
         self.isEnabled = true
         self.createdAt = Date()
         self.lastRunAt = nil
         self.customName = customName
     }
 
-    /// The display name: custom name if set, otherwise the auto-generated sentence.
+    /// The display name: custom name or auto-generated sentence.
     var displayName: String {
-        if let name = customName, !name.isEmpty {
-            return name
-        }
-        return RecipeRegistry.provider(for: recipeType)?.sentence(config: config)
-            ?? "\(recipeType.rawValue) automation"
+        if let name = customName, !name.isEmpty { return name }
+        return sentence
     }
 
-    /// The launchd plist label for this automation.
+    /// The full sentence: "Every weekday at 9:00 AM, open Xcode and Figma"
+    var sentence: String {
+        let when = triggerType.sentenceFragment(config: triggerConfig)
+        let what = actionType.sentenceFragment(config: actionConfig)
+        return "\(when), \(what)"
+    }
+
+    /// Launchd plist label for this automation.
     var plistLabel: String {
-        FileLocations.plistLabel(type: recipeType.rawValue, id: id)
+        "com.macautomata.\(triggerType.rawValue)-\(actionType.rawValue)-\(id)"
     }
 }
