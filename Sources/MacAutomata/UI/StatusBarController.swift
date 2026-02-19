@@ -6,6 +6,7 @@ class StatusBarController {
 
     private var statusItem: NSStatusItem!
     private var mainWindowController: MainWindowController?
+    private var manageWindowController: ManageWindowController?
 
     init() {
         setupStatusItem()
@@ -91,18 +92,17 @@ class StatusBarController {
         )
         addItem.target = self
 
-        menu.addItem(.separator())
-
-        // Remove All (only shown when automations exist)
+        // Manage automations — opens the manage window
         if !automations.isEmpty {
-            let removeItem = menu.addItem(
-                withTitle: "Remove All Automations\u{2026}",
-                action: #selector(removeAllAutomations),
-                keyEquivalent: ""
+            let manageItem = menu.addItem(
+                withTitle: "Manage Automations\u{2026}",
+                action: #selector(openManageWindow),
+                keyEquivalent: "m"
             )
-            removeItem.target = self
-            menu.addItem(.separator())
+            manageItem.target = self
         }
+
+        menu.addItem(.separator())
 
         // Quit
         menu.addItem(
@@ -136,6 +136,13 @@ class StatusBarController {
             mainWindowController = MainWindowController(statusBar: self)
         }
         mainWindowController?.show()
+    }
+
+    @objc private func openManageWindow() {
+        if manageWindowController == nil {
+            manageWindowController = ManageWindowController(statusBar: self)
+        }
+        manageWindowController?.show()
     }
 
     @objc private func removeAllAutomations() {

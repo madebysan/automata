@@ -168,6 +168,10 @@ class RecipePickerView: NSView {
         case .darkMode, .volume: return Styles.systemColor
         case .emptyTrash, .cleanDownloads: return Styles.cleanupColor
         case .openURLs: return Styles.webColor
+        case .openFile, .watchAndMove: return Styles.fileColor
+        case .loginLaunch: return Styles.scheduleColor
+        case .onMount: return Styles.appColor
+        case .intervalNotify: return Styles.audioColor
         }
     }
 }

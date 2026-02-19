@@ -4,16 +4,27 @@ import UserNotifications
 // The main window for creating and managing automations.
 // Shows the recipe picker first, then the config view when a recipe is selected.
 // After saving, installs the automation and returns to the menu bar.
-class MainWindowController {
+class MainWindowController: NSObject, NSWindowDelegate {
 
     private var window: NSWindow?
     private weak var statusBar: StatusBarController?
 
     init(statusBar: StatusBarController) {
         self.statusBar = statusBar
+        super.init()
+    }
+
+    // When the window closes, go back to menu-bar-only mode (no dock icon)
+    func windowWillClose(_ notification: Notification) {
+        NSApp.setActivationPolicy(.accessory)
     }
 
     func show() {
+        // LSUIElement apps must temporarily become a regular app
+        // to receive keyboard focus. Without this, the window opens
+        // but text fields can't be typed into.
+        NSApp.setActivationPolicy(.regular)
+
         if let existingWindow = window {
             existingWindow.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
@@ -29,6 +40,7 @@ class MainWindowController {
         w.title = "Mac Automata"
         w.center()
         w.isReleasedWhenClosed = false
+        w.delegate = self
         window = w
 
         showRecipePicker()
@@ -88,6 +100,7 @@ class MainWindowController {
         // Refresh menu bar and close window
         statusBar?.rebuildMenu()
         window?.close()
+        NSApp.setActivationPolicy(.accessory)
 
         // Show success notification
         showNotification(automation: saved)

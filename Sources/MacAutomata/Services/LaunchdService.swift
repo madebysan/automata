@@ -24,7 +24,7 @@ enum LaunchdService {
         }
 
         let label = automation.plistLabel
-        let schedule = recipe.scheduleDict(config: automation.config)
+        let triggerEntries = recipe.plistTriggerEntries(config: automation.config)
 
         // Build ProgramArguments based on script type
         let programArgs: [String]
@@ -38,8 +38,13 @@ enum LaunchdService {
         var plist: [String: Any] = [
             "Label": label,
             "ProgramArguments": programArgs,
-            "StartCalendarInterval": schedule,
         ]
+
+        // Merge trigger-specific plist entries (StartCalendarInterval,
+        // WatchPaths, RunAtLoad, StartInterval, StartOnMount, etc.)
+        for (key, value) in triggerEntries {
+            plist[key] = value
+        }
 
         // Add stdout/stderr logging
         let logPath = FileLocations.logsDir.path + "/\(label).log"

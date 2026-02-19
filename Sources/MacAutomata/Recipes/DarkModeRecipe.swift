@@ -70,7 +70,7 @@ struct DarkModeRecipe: RecipeProvider {
         return "\(days) at \(time), \(action)"
     }
 
-    func scheduleDict(config: [String: String]) -> Any {
-        return buildSchedule(config)
+    func plistTriggerEntries(config: [String: String]) -> [String: Any] {
+        return calendarTrigger(config)
     }
 }

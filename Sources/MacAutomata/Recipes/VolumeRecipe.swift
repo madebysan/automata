@@ -43,7 +43,7 @@ struct VolumeRecipe: RecipeProvider {
         return "\(days) at \(time), set volume to \(volume)%"
     }
 
-    func scheduleDict(config: [String: String]) -> Any {
-        return buildSchedule(config)
+    func plistTriggerEntries(config: [String: String]) -> [String: Any] {
+        return calendarTrigger(config)
     }
 }

@@ -38,7 +38,7 @@ struct EmptyTrashRecipe: RecipeProvider {
         return "\(days) at \(time), empty the Trash"
     }
 
-    func scheduleDict(config: [String: String]) -> Any {
-        return buildSchedule(config)
+    func plistTriggerEntries(config: [String: String]) -> [String: Any] {
+        return calendarTrigger(config)
     }
 }

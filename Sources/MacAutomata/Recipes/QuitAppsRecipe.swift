@@ -51,7 +51,7 @@ struct QuitAppsRecipe: RecipeProvider {
         return "\(days) at \(time), quit \(appList)"
     }
 
-    func scheduleDict(config: [String: String]) -> Any {
-        return buildSchedule(config)
+    func plistTriggerEntries(config: [String: String]) -> [String: Any] {
+        return calendarTrigger(config)
     }
 }
