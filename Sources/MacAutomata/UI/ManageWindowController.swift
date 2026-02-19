@@ -136,7 +136,7 @@ class ManageWindowController: NSObject, NSWindowDelegate {
                 card.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: pad),
                 card.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -pad),
             ])
-            y += 112  // Card height + 16pt gap between cards
+            y += 130  // Card height + generous gap between cards
         }
         let h = contentView.heightAnchor.constraint(equalToConstant: y + pad)
         h.priority = .defaultLow; h.isActive = true
