@@ -20,11 +20,12 @@ class MainWindowController: NSObject, NSWindowDelegate {
         let w = window ?? {
             let w = NSWindow(
                 contentRect: NSRect(origin: .zero, size: Styles.mainWindowSize),
-                styleMask: [.titled, .closable, .miniaturizable],
+                styleMask: [.titled, .closable, .miniaturizable, .resizable],
                 backing: .buffered, defer: false
             )
             w.center()
             w.isReleasedWhenClosed = false
+            w.minSize = NSSize(width: 420, height: 400)
             w.delegate = self
             window = w
             return w
