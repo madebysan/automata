@@ -42,7 +42,7 @@ enum TemplateLibrary {
         Template(
             id: "morning-workspace",
             name: "Morning Workspace",
-            subtitle: "Open your work apps every morning",
+            subtitle: "Open your chosen apps at 9 AM every weekday",
             icon: "sun.and.horizon",
             color: .systemOrange,
             category: .routines,
@@ -54,7 +54,7 @@ enum TemplateLibrary {
         Template(
             id: "daily-journal",
             name: "Open Daily Journal",
-            subtitle: "Start each day with your journal or notes",
+            subtitle: "Open a file of your choice at 8 AM every day",
             icon: "note.text",
             color: .systemYellow,
             category: .routines,
@@ -66,7 +66,7 @@ enum TemplateLibrary {
         Template(
             id: "startup-apps",
             name: "Startup Apps",
-            subtitle: "Launch your essentials when you log in",
+            subtitle: "Open your chosen apps automatically when you log in",
             icon: "bolt.fill",
             color: .systemBlue,
             category: .routines,
@@ -78,7 +78,7 @@ enum TemplateLibrary {
         Template(
             id: "morning-music",
             name: "Morning Music",
-            subtitle: "Play a song or playlist when you log in",
+            subtitle: "Play a song or playlist file when you log in",
             icon: "music.note",
             color: .systemPink,
             category: .routines,
@@ -93,7 +93,7 @@ enum TemplateLibrary {
         Template(
             id: "end-of-day",
             name: "End of Day Shutdown",
-            subtitle: "Quit work apps when the day is done",
+            subtitle: "Quit your chosen apps at 6 PM every weekday",
             icon: "moon.stars",
             color: .systemIndigo,
             category: .focus,
@@ -105,7 +105,7 @@ enum TemplateLibrary {
         Template(
             id: "focus-mode",
             name: "Focus Mode",
-            subtitle: "Quit distracting apps during work hours",
+            subtitle: "Quit Messages, Slack, and Discord at 9 AM weekdays",
             icon: "eye.slash",
             color: .systemPurple,
             category: .focus,
@@ -117,7 +117,7 @@ enum TemplateLibrary {
         Template(
             id: "dark-mode-night",
             name: "Dark Mode at Night",
-            subtitle: "Switch to dark mode in the evening",
+            subtitle: "Turn on Dark Mode at 8 PM every day",
             icon: "moon.fill",
             color: .systemIndigo,
             category: .focus,
@@ -129,7 +129,7 @@ enum TemplateLibrary {
         Template(
             id: "light-mode-morning",
             name: "Light Mode in Morning",
-            subtitle: "Switch to light mode when you wake up",
+            subtitle: "Turn on Light Mode at 7 AM every day",
             icon: "sun.max.fill",
             color: .systemYellow,
             category: .focus,
@@ -144,7 +144,7 @@ enum TemplateLibrary {
         Template(
             id: "quiet-hours",
             name: "Quiet Hours",
-            subtitle: "Mute your Mac late at night",
+            subtitle: "Mute volume to 0% at 11 PM every day",
             icon: "speaker.slash",
             color: .systemGray,
             category: .volume,
@@ -156,7 +156,7 @@ enum TemplateLibrary {
         Template(
             id: "morning-volume",
             name: "Morning Volume",
-            subtitle: "Set a comfortable volume in the morning",
+            subtitle: "Set volume to 50% at 7 AM every day",
             icon: "speaker.wave.2",
             color: .systemGreen,
             category: .volume,
@@ -171,7 +171,7 @@ enum TemplateLibrary {
         Template(
             id: "stretch-break",
             name: "Stretch Break",
-            subtitle: "Remind yourself to stretch every 30 minutes",
+            subtitle: "Every 30 min, notify: \"Time to stretch!\"",
             icon: "figure.stand",
             color: .systemGreen,
             category: .reminders,
@@ -183,7 +183,7 @@ enum TemplateLibrary {
         Template(
             id: "hydration",
             name: "Hydration Reminder",
-            subtitle: "Drink water every hour",
+            subtitle: "Every 60 min, notify: \"Drink water\"",
             icon: "drop.fill",
             color: .systemCyan,
             category: .reminders,
@@ -195,7 +195,7 @@ enum TemplateLibrary {
         Template(
             id: "eye-break",
             name: "Eye Break (20-20-20)",
-            subtitle: "Every 20 min, look 20 feet away for 20 seconds",
+            subtitle: "Every 20 min, notify: \"Look away for 20 seconds\"",
             icon: "eye",
             color: .systemTeal,
             category: .reminders,
@@ -210,7 +210,7 @@ enum TemplateLibrary {
         Template(
             id: "screenshot-organizer",
             name: "Screenshot Organizer",
-            subtitle: "Move screenshots off your Desktop automatically",
+            subtitle: "When files appear on Desktop, move to Screenshots folder",
             icon: "camera.viewfinder",
             color: .systemOrange,
             category: .files,
@@ -222,7 +222,7 @@ enum TemplateLibrary {
         Template(
             id: "downloads-sorter",
             name: "Downloads Sorter",
-            subtitle: "Move new downloads to a folder you choose",
+            subtitle: "When files appear in Downloads, move to a folder you pick",
             icon: "folder.badge.plus",
             color: .systemBlue,
             category: .files,
@@ -234,7 +234,7 @@ enum TemplateLibrary {
         Template(
             id: "weekly-cleanup",
             name: "Weekly Downloads Cleanup",
-            subtitle: "Delete old files from Downloads every Sunday",
+            subtitle: "Every Sunday at 10 AM, delete files older than 30 days",
             icon: "folder.badge.minus",
             color: .systemTeal,
             category: .files,
@@ -246,7 +246,7 @@ enum TemplateLibrary {
         Template(
             id: "empty-trash",
             name: "Empty Trash Weekly",
-            subtitle: "Keep your Trash from piling up",
+            subtitle: "Every Friday at 5 PM, empty the Trash",
             icon: "trash",
             color: .systemGray,
             category: .files,
@@ -261,7 +261,7 @@ enum TemplateLibrary {
         Template(
             id: "daily-standup",
             name: "Daily Standup",
-            subtitle: "Open your meeting link every morning",
+            subtitle: "Open a meeting URL at 9:30 AM every weekday",
             icon: "video",
             color: .systemGreen,
             category: .web,
@@ -273,7 +273,7 @@ enum TemplateLibrary {
         Template(
             id: "weekly-review",
             name: "Weekly Review Sites",
-            subtitle: "Open dashboards or reports every Monday",
+            subtitle: "Open your dashboard URLs every Monday at 9 AM",
             icon: "globe",
             color: .systemIndigo,
             category: .web,
@@ -288,7 +288,7 @@ enum TemplateLibrary {
         Template(
             id: "backup-reminder",
             name: "Backup Reminder",
-            subtitle: "Get a nudge when you plug in an external drive",
+            subtitle: "When a drive is plugged in, notify: \"Time to back up!\"",
             icon: "externaldrive.badge.checkmark",
             color: .systemOrange,
             category: .drives,
