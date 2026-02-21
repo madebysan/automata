@@ -1,10 +1,18 @@
-# Automata
+<p align="center">
+  <img src="assets/app-icon.png" width="128" height="128" alt="Automata app icon">
+</p>
 
-A macOS menu bar app for setting up personal automations — no scripting required. Pick a trigger, pick an action, and Automata installs it as a native macOS scheduled job. **You can quit the app after setup — your automations keep running on their own.**
+<h1 align="center">Automata</h1>
 
-Built as a simpler, more focused alternative to Apple Shortcuts for people who want straightforward "when X happens, do Y" rules without flowcharts, Siri, or iCloud.
+<p align="center">A macOS menu bar app for setting up personal automations — no scripting required.<br>
+Pick a trigger, pick an action, and Automata installs it as a native macOS scheduled job.<br>
+<strong>You can quit the app after setup — your automations keep running on their own.</strong></p>
+
+<p align="center"><strong>Version 0.2.0</strong> · macOS 13 (Ventura) or later · Apple Silicon & Intel</p>
 
 > **Important:** Automata is a setup tool, not a runtime. It creates native macOS `launchd` jobs that run whether Automata is open or not. You only need the app when you want to create, edit, or delete an automation.
+
+Built as a simpler, more focused alternative to Apple Shortcuts for people who want straightforward "when X happens, do Y" rules without flowcharts, Siri, or iCloud.
 
 ## How It Works
 
