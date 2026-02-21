@@ -10,6 +10,22 @@ Pick a trigger, pick an action, and Automata installs it as a native macOS sched
 
 <p align="center"><strong>Version 0.2.0</strong> · macOS 13 (Ventura) or later · Apple Silicon & Intel</p>
 
+<p align="center">
+  <img src="assets/screenshot-new.png" width="280" alt="Create from templates">
+  &nbsp;&nbsp;
+  <img src="assets/screenshot-custom.png" width="280" alt="Custom automation builder">
+  &nbsp;&nbsp;
+  <img src="assets/screenshot-manage.png" width="280" alt="Manage automations">
+</p>
+
+<p align="center">
+  <em>Pick a template</em>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <em>Or build your own</em>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <em>Manage active automations</em>
+</p>
+
 > **Important:** Automata is a setup tool, not a runtime. It creates native macOS `launchd` jobs that run whether Automata is open or not. You only need the app when you want to create, edit, or delete an automation.
 
 Built as a simpler, more focused alternative to Apple Shortcuts for people who want straightforward "when X happens, do Y" rules without flowcharts, Siri, or iCloud.
