@@ -14,6 +14,7 @@ enum ActionType: String, Codable, CaseIterable {
     case setVolume = "set-volume"
     case moveFiles = "move-files"
     case showNotification = "show-notification"
+    case keepAwake = "keep-awake"
 
     // MARK: - Display
 
@@ -29,6 +30,7 @@ enum ActionType: String, Codable, CaseIterable {
         case .setVolume: return "Set volume"
         case .moveFiles: return "Move files to..."
         case .showNotification: return "Show a notification"
+        case .keepAwake: return "Keep Mac awake"
         }
     }
 
@@ -44,6 +46,7 @@ enum ActionType: String, Codable, CaseIterable {
         case .setVolume: return "speaker.wave.2"
         case .moveFiles: return "folder.badge.plus"
         case .showNotification: return "bell"
+        case .keepAwake: return "cup.and.heat.waves"
         }
     }
 
@@ -54,7 +57,7 @@ enum ActionType: String, Codable, CaseIterable {
         switch self {
         case .quitApps, .emptyTrash, .darkMode, .setVolume, .showNotification:
             return true
-        case .openApps, .openFile, .openURLs, .cleanDownloads, .moveFiles:
+        case .openApps, .openFile, .openURLs, .cleanDownloads, .moveFiles, .keepAwake:
             return false
         }
     }
@@ -70,7 +73,7 @@ enum ActionType: String, Codable, CaseIterable {
         case .openApps:
             return [.appPicker(label: "Apps to open", multiple: true)]
         case .quitApps:
-            return [.appPicker(label: "Apps to quit", multiple: true)]
+            return [.appPicker(label: "Apps to quit", multiple: true, allowAll: true)]
         case .openFile:
             return [.filePicker(label: "File to open")]
         case .openURLs:
@@ -87,6 +90,8 @@ enum ActionType: String, Codable, CaseIterable {
             return [.folderPicker(label: "Move files to", key: "destFolder")]
         case .showNotification:
             return [.textInput(label: "Message", placeholder: "Time to stretch!", key: "message")]
+        case .keepAwake:
+            return [.dropdown(label: "Stay awake for", key: "duration", options: ["30 min", "1 hour", "2 hours", "4 hours", "8 hours", "12 hours"])]
         }
     }
 
@@ -96,11 +101,26 @@ enum ActionType: String, Codable, CaseIterable {
         switch self {
         case .openApps:
             let apps = parseApps(config["apps"] ?? "")
-            var lines = ["#!/bin/bash", "# Open apps — Mac Automata"]
+            var lines = ["#!/bin/bash", "# Open apps — Automata"]
             for app in apps { lines.append("open -a \"\(app)\"") }
             return lines.joined(separator: "\n")
 
         case .quitApps:
+            if config["quitAll"] == "true" {
+                return """
+                tell application "System Events"
+                    set allProcs to (every application process whose background only is false)
+                    repeat with proc in allProcs
+                        set procName to name of proc
+                        if procName is not "MacAutomata" and procName is not "Finder" then
+                            try
+                                tell application procName to quit
+                            end try
+                        end if
+                    end repeat
+                end tell
+                """
+            }
             let apps = parseApps(config["apps"] ?? "")
             return apps.map { "tell application \"\($0)\" to quit" }.joined(separator: "\n")
 
@@ -112,7 +132,7 @@ enum ActionType: String, Codable, CaseIterable {
             let urls = (config["urls"] ?? "").split(separator: "\n")
                 .map { $0.trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty }
-            var lines = ["#!/bin/bash", "# Open URLs — Mac Automata"]
+            var lines = ["#!/bin/bash", "# Open URLs — Automata"]
             for url in urls { lines.append("open \"\(url)\"") }
             return lines.joined(separator: "\n")
 
@@ -149,7 +169,8 @@ enum ActionType: String, Codable, CaseIterable {
 
         case .moveFiles:
             let dest = config["destFolder"] ?? ""
-            let source = triggerConfig["watchFolder"] ?? "$HOME/Downloads"
+            // sourceFolder is set when trigger isn't fileAppears; watchFolder is the source for fileAppears
+            let source = config["sourceFolder"] ?? triggerConfig["watchFolder"] ?? "$HOME/Downloads"
             let logFile = FileLocations.logsDir.path + "/move-files.log"
             return """
             #!/bin/bash
@@ -166,7 +187,34 @@ enum ActionType: String, Codable, CaseIterable {
 
         case .showNotification:
             let msg = (config["message"] ?? "Reminder").replacingOccurrences(of: "\"", with: "\\\"")
-            return "display notification \"\(msg)\" with title \"Mac Automata\""
+            return "display notification \"\(msg)\" with title \"Automata\""
+
+        case .keepAwake:
+            // In a time range, caffeinate runs indefinitely — the end script kills it.
+            // For a one-shot trigger, use the configured duration.
+            let isTimeRange = triggerConfig["startHour"] != nil
+            if isTimeRange {
+                return """
+                #!/bin/bash
+                # Keep Mac awake (time range) — Automata
+                if [ -f /tmp/mac-automata-awake.pid ]; then
+                    kill "$(cat /tmp/mac-automata-awake.pid)" 2>/dev/null || true
+                fi
+                caffeinate -dims &
+                echo $! > /tmp/mac-automata-awake.pid
+                """
+            } else {
+                let seconds = keepAwakeSeconds(config["duration"] ?? "1 hour")
+                return """
+                #!/bin/bash
+                # Keep Mac awake — Automata
+                if [ -f /tmp/mac-automata-awake.pid ]; then
+                    kill "$(cat /tmp/mac-automata-awake.pid)" 2>/dev/null || true
+                fi
+                caffeinate -dims -t \(seconds) &
+                echo $! > /tmp/mac-automata-awake.pid
+                """
+            }
         }
     }
 
@@ -179,6 +227,7 @@ enum ActionType: String, Codable, CaseIterable {
             let apps = parseApps(config["apps"] ?? "")
             return "open \(apps.isEmpty ? "apps" : apps.joined(separator: " and "))"
         case .quitApps:
+            if config["quitAll"] == "true" { return "quit all open apps" }
             let apps = parseApps(config["apps"] ?? "")
             return "quit \(apps.isEmpty ? "apps" : apps.joined(separator: " and "))"
         case .openFile:
@@ -202,11 +251,32 @@ enum ActionType: String, Codable, CaseIterable {
         case .setVolume:
             return "set volume to \(config["volume"] ?? "50")%"
         case .moveFiles:
+            let src = ((config["sourceFolder"] ?? "") as NSString).lastPathComponent
             let dest = ((config["destFolder"] ?? "") as NSString).lastPathComponent
+            if !src.isEmpty {
+                return "move files from \(src) to \(dest.isEmpty ? "a folder" : dest)"
+            }
             return "move files to \(dest.isEmpty ? "a folder" : dest)"
         case .showNotification:
             let msg = config["message"] ?? "reminder"
             return "remind: \"\(msg)\""
+        case .keepAwake:
+            let duration = config["duration"] ?? "1 hour"
+            return "keep Mac awake for \(duration)"
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func keepAwakeSeconds(_ duration: String) -> Int {
+        switch duration {
+        case "30 min":   return 30 * 60
+        case "1 hour":   return 60 * 60
+        case "2 hours":  return 2 * 60 * 60
+        case "4 hours":  return 4 * 60 * 60
+        case "8 hours":  return 8 * 60 * 60
+        case "12 hours": return 12 * 60 * 60
+        default:         return 60 * 60
         }
     }
 
@@ -214,9 +284,15 @@ enum ActionType: String, Codable, CaseIterable {
 
     func validate(config: [String: String]) -> String? {
         switch self {
-        case .openApps, .quitApps:
+        case .openApps:
             guard let apps = config["apps"], !apps.isEmpty else {
                 return "Please select at least one app"
+            }
+        case .quitApps:
+            if config["quitAll"] != "true" {
+                guard let apps = config["apps"], !apps.isEmpty else {
+                    return "Please select at least one app, or check \"All open apps\""
+                }
             }
         case .openFile:
             guard let path = config["filePath"], !path.isEmpty else {
@@ -242,10 +318,90 @@ enum ActionType: String, Codable, CaseIterable {
             guard let msg = config["message"], !msg.isEmpty else {
                 return "Please enter a message"
             }
-        case .darkMode, .emptyTrash:
+        case .darkMode, .emptyTrash, .keepAwake:
             break // No validation needed
         }
         return nil
+    }
+
+    // MARK: - Compatibility
+
+    /// Triggers that make sense for this action.
+    var compatibleTriggers: Set<TriggerType> {
+        switch self {
+        // System-level actions: no file relationship, but reversible → support timeRange
+        case .darkMode, .setVolume, .keepAwake:
+            return [.scheduledTime, .interval, .onLogin, .driveMount, .timeRange]
+        // System-level and irreversible → no fileAppears, no timeRange
+        case .emptyTrash, .cleanDownloads:
+            return [.scheduledTime, .interval, .onLogin, .driveMount]
+        // Reversible app actions → all triggers including timeRange
+        case .openApps, .quitApps:
+            return Set(TriggerType.allCases)
+        // Fire-and-forget, no meaningful revert → all triggers except timeRange
+        case .openFile, .openURLs, .moveFiles, .showNotification:
+            return Set(TriggerType.allCases).subtracting([.timeRange])
+        }
+    }
+
+    // MARK: - Time range revert
+
+    /// True when this action can be used in a time range (has a meaningful revert).
+    var supportsTimeRange: Bool {
+        compatibleTriggers.contains(.timeRange)
+    }
+
+    /// Whether the revert script is AppleScript (vs shell).
+    var isRevertAppleScript: Bool {
+        switch self {
+        case .darkMode, .setVolume: return true   // same as main script
+        case .openApps: return true               // revert of "open" is "quit" (AppleScript)
+        case .quitApps: return false              // revert of "quit" is "open -a" (shell)
+        case .keepAwake: return false             // revert is a shell kill command
+        default: return false
+        }
+    }
+
+    /// The script that undoes the action at the end of a time range.
+    func revertScript(config: [String: String]) -> String {
+        switch self {
+        case .darkMode:
+            let mode = config["mode"] ?? "dark"
+            // Revert to the opposite of what was applied
+            let isDark = mode == "dark"
+            return isDark
+                ? "tell application \"System Events\"\n    tell appearance preferences\n        set dark mode to false\n    end tell\nend tell"
+                : "tell application \"System Events\"\n    tell appearance preferences\n        set dark mode to true\n    end tell\nend tell"
+
+        case .setVolume:
+            let vol = config["revertVolume"] ?? "50"
+            return "set volume output volume \(vol)"
+
+        case .keepAwake:
+            return """
+            #!/bin/bash
+            # End keep-awake time range — Automata
+            if [ -f /tmp/mac-automata-awake.pid ]; then
+                kill "$(cat /tmp/mac-automata-awake.pid)" 2>/dev/null || true
+                rm -f /tmp/mac-automata-awake.pid
+            fi
+            """
+
+        case .quitApps:
+            // Revert of "quit apps" = reopen them
+            let apps = parseApps(config["apps"] ?? "")
+            var lines = ["#!/bin/bash", "# Reopen apps — Automata"]
+            for app in apps { lines.append("open -a \"\(app)\"") }
+            return lines.joined(separator: "\n")
+
+        case .openApps:
+            // Revert of "open apps" = quit them
+            let apps = parseApps(config["apps"] ?? "")
+            return apps.map { "tell application \"\($0)\" to quit" }.joined(separator: "\n")
+
+        default:
+            return ""
+        }
     }
 
     private func parseApps(_ str: String) -> [String] {

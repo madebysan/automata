@@ -4,10 +4,11 @@ import Foundation
 // Scans /Applications and ~/Applications for .app bundles.
 enum AppDiscoveryService {
 
-    /// Get a sorted list of installed app names.
-    static func installedApps() -> [String] {
+    /// Get a sorted list of installed apps as (name, path) tuples.
+    static func installedApps() -> [(name: String, path: String)] {
         let fm = FileManager.default
-        var apps = Set<String>()
+        var seen = Set<String>()
+        var apps: [(name: String, path: String)] = []
 
         let searchDirs = [
             "/Applications",
@@ -18,10 +19,12 @@ enum AppDiscoveryService {
             guard let contents = try? fm.contentsOfDirectory(atPath: dir) else { continue }
             for item in contents where item.hasSuffix(".app") {
                 let name = (item as NSString).deletingPathExtension
-                apps.insert(name)
+                if seen.insert(name).inserted {
+                    apps.append((name: name, path: dir + "/" + item))
+                }
             }
         }
 
-        return apps.sorted()
+        return apps.sorted { $0.name < $1.name }
     }
 }

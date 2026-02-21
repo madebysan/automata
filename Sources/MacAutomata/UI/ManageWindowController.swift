@@ -184,15 +184,15 @@ class ManageWindowController: NSObject, NSWindowDelegate {
         toggle.action = #selector(toggleTapped(_:))
         toggle.controlSize = .mini
         toggle.translatesAutoresizingMaskIntoConstraints = false
-        objc_setAssociatedObject(toggle, "aid", automation.id, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        toggle.identifier = NSUserInterfaceItemIdentifier(automation.id)
         inner.addSubview(toggle)
 
-        // Edit + Delete buttons with text labels (fix #9: visible, discoverable)
+        // Edit + Delete buttons
         let editBtn = NSButton(title: "Edit", target: self, action: #selector(editTapped(_:)))
         editBtn.bezelStyle = .rounded
         editBtn.controlSize = .small
         editBtn.translatesAutoresizingMaskIntoConstraints = false
-        objc_setAssociatedObject(editBtn, "aid", automation.id, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        editBtn.identifier = NSUserInterfaceItemIdentifier(automation.id)
         inner.addSubview(editBtn)
 
         let delBtn = NSButton(title: "Delete", target: self, action: #selector(deleteTapped(_:)))
@@ -200,7 +200,7 @@ class ManageWindowController: NSObject, NSWindowDelegate {
         delBtn.controlSize = .small
         delBtn.contentTintColor = .systemRed
         delBtn.translatesAutoresizingMaskIntoConstraints = false
-        objc_setAssociatedObject(delBtn, "aid", automation.id, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        delBtn.identifier = NSUserInterfaceItemIdentifier(automation.id)
         inner.addSubview(delBtn)
 
         NSLayoutConstraint.activate([
@@ -231,7 +231,7 @@ class ManageWindowController: NSObject, NSWindowDelegate {
     // MARK: - Actions
 
     @objc private func toggleTapped(_ sender: NSSwitch) {
-        guard let id = objc_getAssociatedObject(sender, "aid") as? String,
+        guard let id = sender.identifier?.rawValue,
               let a = ManifestService.shared.automation(byId: id) else { return }
         let newState = ManifestService.shared.toggleEnabled(id: id)
         if newState { _ = LaunchdService.enable(automation: a) }
@@ -240,7 +240,7 @@ class ManageWindowController: NSObject, NSWindowDelegate {
     }
 
     @objc private func editTapped(_ sender: NSButton) {
-        guard let id = objc_getAssociatedObject(sender, "aid") as? String,
+        guard let id = sender.identifier?.rawValue,
               let automation = ManifestService.shared.automation(byId: id),
               let statusBar = statusBar else { return }
         window?.close()
@@ -253,7 +253,7 @@ class ManageWindowController: NSObject, NSWindowDelegate {
     }
 
     @objc private func deleteTapped(_ sender: NSButton) {
-        guard let id = objc_getAssociatedObject(sender, "aid") as? String,
+        guard let id = sender.identifier?.rawValue,
               let a = ManifestService.shared.automation(byId: id) else { return }
         let alert = NSAlert()
         alert.messageText = "Delete this automation?"

@@ -14,28 +14,33 @@ class StatusBarController {
 
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "gearshape.2", accessibilityDescription: "Mac Automata")
-            button.image?.size = NSSize(width: Styles.statusBarIconSize, height: Styles.statusBarIconSize)
-        }
         rebuildMenu()
     }
 
     func rebuildMenu() {
         let menu = NSMenu()
+        menu.autoenablesItems = false
         let automations = ManifestService.shared.allAutomations
 
         // Header
-        let header = NSMenuItem(title: "Mac Automata", action: nil, keyEquivalent: "")
+        let header = NSMenuItem(title: "Automata", action: nil, keyEquivalent: "")
         header.isEnabled = false
         menu.addItem(header)
 
+        let manifest = ManifestService.shared.manifest
         let enabled = ManifestService.shared.enabledAutomations.count
         let total = automations.count
-        let statusText = total == 0 ? "No automations yet" : "\(enabled) of \(total) active"
-        let statusItem = NSMenuItem(title: statusText, action: nil, keyEquivalent: "")
-        statusItem.isEnabled = false
-        menu.addItem(statusItem)
+        let statusText: String
+        if manifest.isPaused {
+            statusText = "Paused"
+        } else if total == 0 {
+            statusText = "No automations yet"
+        } else {
+            statusText = "\(enabled) of \(total) active"
+        }
+        let statusMenuItem = NSMenuItem(title: statusText, action: nil, keyEquivalent: "")
+        statusMenuItem.isEnabled = false
+        menu.addItem(statusMenuItem)
         menu.addItem(.separator())
 
         // Automation list with toggles
@@ -58,6 +63,16 @@ class StatusBarController {
             menu.addItem(.separator())
         }
 
+        // Pause / Resume
+        let pauseTitle = manifest.isPaused ? "Resume automations" : "Pause all automations"
+        let pauseItem = menu.addItem(withTitle: pauseTitle, action: #selector(togglePause), keyEquivalent: "")
+        pauseItem.target = self
+        // Disabled when: no automations, OR (not paused AND no enabled automations)
+        if total == 0 || (!manifest.isPaused && enabled == 0) {
+            pauseItem.isEnabled = false
+        }
+        menu.addItem(.separator())
+
         // Add + Manage
         let addItem = menu.addItem(withTitle: "New Automation\u{2026}", action: #selector(openMainWindow), keyEquivalent: "n")
         addItem.target = self
@@ -69,16 +84,70 @@ class StatusBarController {
 
         menu.addItem(.separator())
 
-        let aboutItem = menu.addItem(withTitle: "About Mac Automata", action: #selector(openAbout), keyEquivalent: "")
+        let aboutItem = menu.addItem(withTitle: "About Automata", action: #selector(openAbout), keyEquivalent: "")
         aboutItem.target = self
 
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Quit Mac Automata", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        menu.addItem(withTitle: "Quit Automata", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
 
         self.statusItem.menu = menu
+        updateStatusIcon()
+    }
+
+    // MARK: - Status icon
+
+    /// Updates the menu bar icon. Shows a green dot when automations are active (not paused).
+    private func updateStatusIcon() {
+        guard let button = statusItem.button else { return }
+        let manifest = ManifestService.shared.manifest
+        let hasActive = !manifest.isPaused && ManifestService.shared.enabledAutomations.count > 0
+
+        guard let gearImage = NSImage(systemSymbolName: "gearshape", accessibilityDescription: "Automata") else { return }
+        let size = NSSize(width: Styles.statusBarIconSize, height: Styles.statusBarIconSize)
+
+        if hasActive {
+            // Composite: gear + green dot
+            // isTemplate must be false so the green dot keeps its color,
+            // so we manually tint the gear to match the menu bar appearance.
+            let composite = NSImage(size: size, flipped: false) { rect in
+                // Draw the gear
+                gearImage.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1.0)
+                // Tint the gear pixels to match menu bar (sourceAtop only colors existing pixels)
+                let isDark = NSAppearance.currentDrawing().bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                let tint: NSColor = isDark ? .white : .black
+                tint.setFill()
+                rect.fill(using: .sourceAtop)
+                // Draw a small green dot in the bottom-right
+                let dotSize: CGFloat = 5
+                let dotRect = NSRect(
+                    x: rect.maxX - dotSize - 0.5,
+                    y: 0.5,
+                    width: dotSize, height: dotSize
+                )
+                NSColor.systemGreen.setFill()
+                NSBezierPath(ovalIn: dotRect).fill()
+                return true
+            }
+            composite.isTemplate = false
+            button.image = composite
+        } else {
+            gearImage.size = size
+            gearImage.isTemplate = true
+            button.image = gearImage
+        }
     }
 
     // MARK: - Actions
+
+    @objc private func togglePause() {
+        let manifest = ManifestService.shared.manifest
+        if manifest.isPaused {
+            ManifestService.shared.resumeAll()
+        } else {
+            ManifestService.shared.pauseAll()
+        }
+        rebuildMenu()
+    }
 
     @objc private func toggleAutomation(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String,

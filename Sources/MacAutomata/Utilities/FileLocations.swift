@@ -1,6 +1,6 @@
 import Foundation
 
-// Centralized path constants for all files Mac Automata creates.
+// Centralized path constants for all files Automata creates.
 // Everything lives in ~/.mac-automata/ except plists, which go
 // in ~/Library/LaunchAgents/ where launchd expects them.
 enum FileLocations {
@@ -48,9 +48,9 @@ enum FileLocations {
         launchAgentsDir.appendingPathComponent("\(automation.plistLabel).plist")
     }
 
-    /// Script URL for an automation.
-    static func scriptURL(for automation: Automation, extension ext: String) -> URL {
-        scriptsDir.appendingPathComponent("\(automation.plistLabel).\(ext)")
+    /// Script URL for an automation. Use suffix "-end" for time range revert scripts.
+    static func scriptURL(for automation: Automation, suffix: String = "", extension ext: String) -> URL {
+        scriptsDir.appendingPathComponent("\(automation.plistLabel)\(suffix).\(ext)")
     }
 
     // MARK: - Setup

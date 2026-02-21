@@ -20,14 +20,27 @@ class AutomationBuilder: NSView {
     private var actionDropdown: NSPopUpButton!
     private var triggerFieldsContainer: NSStackView!
     private var actionFieldsContainer: NSStackView!
+    private var builderTitleLabel: NSTextField!
     private var sentenceLabel: NSTextField!
     private var errorLabel: NSTextField!
+
+    // True only when editing an automation already saved to the manifest
+    private var isExistingAutomation: Bool {
+        guard let id = editing?.id else { return false }
+        return ManifestService.shared.automation(byId: id) != nil
+    }
 
     // Field references for reading values
     private var hourPicker: NSPopUpButton?
     private var minutePicker: NSPopUpButton?
+    private var startHourPicker: NSPopUpButton?
+    private var startMinutePicker: NSPopUpButton?
+    private var endHourPicker: NSPopUpButton?
+    private var endMinutePicker: NSPopUpButton?
     private var weekdayButtons: [NSButton] = []
     private var appCheckboxes: [NSButton] = []
+    private var appCheckboxNames: [String] = []
+    private var quitAllCheckbox: NSButton?
     private var folderLabels: [String: NSTextField] = [:]
     private var textFields: [String: NSTextField] = [:]
     private var numberFields: [String: NSTextField] = [:]
@@ -85,11 +98,12 @@ class AutomationBuilder: NSView {
         y += 36
 
         // Title
-        let titleText = editing != nil ? "Edit Automation" : "New Automation"
-        let title = Styles.label(titleText, font: Styles.titleFont)
-        title.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(title)
-        pin(title, in: content, top: y, leading: pad, trailing: -pad)
+        builderTitleLabel = Styles.label("", font: Styles.titleFont)
+        builderTitleLabel.maximumNumberOfLines = 1
+        builderTitleLabel.cell?.lineBreakMode = .byTruncatingTail
+        builderTitleLabel.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(builderTitleLabel)
+        pin(builderTitleLabel, in: content, top: y, leading: pad, trailing: -pad)
         y += 44
 
         // ── WHEN section ── (fix #1: bigger, bolder, visible label)
@@ -176,24 +190,29 @@ class AutomationBuilder: NSView {
         ])
 
         buildActionFields()
-        y += estimateFieldsHeight(selectedAction.fields) + 20
 
         // ── Error label ──
+        // Fixed height so hidden/shown state doesn't shift layout
         errorLabel = Styles.label("", font: Styles.captionFont, color: .systemRed)
         errorLabel.translatesAutoresizingMaskIntoConstraints = false
         errorLabel.isHidden = true
         content.addSubview(errorLabel)
-        pin(errorLabel, in: content, top: y, leading: pad, trailing: -pad)
-        y += 16
+        NSLayoutConstraint.activate([
+            errorLabel.topAnchor.constraint(equalTo: actionFieldsContainer.bottomAnchor, constant: 20),
+            errorLabel.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: pad),
+            errorLabel.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -pad),
+            errorLabel.heightAnchor.constraint(equalToConstant: 16),
+        ])
 
         // ── Preview ──
         let previewLabel = Styles.label("Preview", font: NSFont.systemFont(ofSize: 15, weight: .semibold), color: .secondaryLabelColor)
         previewLabel.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(previewLabel)
-        pin(previewLabel, in: content, top: y, leading: pad)
-        y += 24
+        NSLayoutConstraint.activate([
+            previewLabel.topAnchor.constraint(equalTo: errorLabel.bottomAnchor, constant: 8),
+            previewLabel.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: pad),
+        ])
 
-        // Preview sentence in a card (fix #4 context — makes the sentence prominent)
         let previewCard = NSBox()
         previewCard.boxType = .custom
         previewCard.cornerRadius = 8
@@ -217,33 +236,29 @@ class AutomationBuilder: NSView {
             ])
         }
         NSLayoutConstraint.activate([
-            previewCard.topAnchor.constraint(equalTo: content.topAnchor, constant: y),
+            previewCard.topAnchor.constraint(equalTo: previewLabel.bottomAnchor, constant: 8),
             previewCard.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: pad),
             previewCard.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -pad),
+            previewCard.heightAnchor.constraint(equalToConstant: 44),
         ])
-        y += 52
 
-        // ── Save button (fix #4: wider, more prominent) ──
-        let saveTitle = editing != nil ? "Update Automation" : "Save Automation"
-        let saveBtn = NSButton(title: saveTitle, target: self, action: #selector(saveTapped))
-        saveBtn.bezelStyle = .rounded
-        saveBtn.controlSize = .large
-        saveBtn.keyEquivalent = "\r"
+        // ── Save button ──
+        let saveTitle = isExistingAutomation ? "Update Automation" : "Save Automation"
+        let saveBtn = Styles.accentButton(saveTitle, target: self, action: #selector(saveTapped))
         saveBtn.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(saveBtn)
         NSLayoutConstraint.activate([
-            saveBtn.topAnchor.constraint(equalTo: content.topAnchor, constant: y),
-            saveBtn.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: pad),
+            saveBtn.topAnchor.constraint(equalTo: previewCard.bottomAnchor, constant: 16),
             saveBtn.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -pad),
-            saveBtn.heightAnchor.constraint(equalToConstant: 36),
         ])
-        y += 56
 
-        let h = content.heightAnchor.constraint(equalToConstant: y)
+        // Content height is now driven by the actual save button position — no estimate needed
+        let h = content.bottomAnchor.constraint(equalTo: saveBtn.bottomAnchor, constant: pad)
         h.priority = .defaultLow
         h.isActive = true
 
         updateSentence()
+        updateDropdownCompatibility()
     }
 
     // MARK: - Build fields
@@ -264,11 +279,29 @@ class AutomationBuilder: NSView {
     private func buildActionFields() {
         clearFieldRefs(forTrigger: false)
         actionFieldsContainer.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        for field in selectedAction.fields {
+
+        var fields = selectedAction.fields
+
+        // moveFiles needs an explicit source folder when the trigger isn't fileAppears
+        if selectedAction == .moveFiles && selectedTrigger != .fileAppears {
+            fields.insert(.folderPicker(label: "Move files from", key: "sourceFolder"), at: 0)
+        }
+
+        // keepAwake in a time range: duration is set by the range itself, not a dropdown
+        if selectedAction == .keepAwake && selectedTrigger == .timeRange {
+            fields = []
+        }
+
+        // setVolume in a time range: add a "restore to" field for the end script
+        if selectedAction == .setVolume && selectedTrigger == .timeRange {
+            fields.append(.numberInput(label: "After range, restore to", placeholder: "50", unit: "%", key: "revertVolume"))
+        }
+
+        for field in fields {
             let view = buildField(field, values: &actionValues, isTrigger: false)
             actionFieldsContainer.addArrangedSubview(view)
         }
-        if selectedAction.fields.isEmpty {
+        if fields.isEmpty {
             let hint = Styles.label("No configuration needed.", font: Styles.bodyFont, color: Styles.tertiaryLabel)
             actionFieldsContainer.addArrangedSubview(hint)
         }
@@ -278,10 +311,14 @@ class AutomationBuilder: NSView {
         switch field {
         case .timePicker:
             return makeTimePicker(values: &values)
+        case .startTimePicker:
+            return makeTimePicker(label: "From", prefix: "start", values: &values)
+        case .endTimePicker:
+            return makeTimePicker(label: "To", prefix: "end", values: &values)
         case .weekdayPicker:
             return makeWeekdayPicker(values: &values)
-        case .appPicker(let label, _):
-            return makeAppPicker(label: label, values: &values)
+        case .appPicker(let label, _, let allowAll):
+            return makeAppPicker(label: label, allowAll: allowAll, values: &values)
         case .filePicker(let label):
             return makeFilePicker(label: label, values: &values)
         case .folderPicker(let label, let key):
@@ -299,10 +336,13 @@ class AutomationBuilder: NSView {
 
     // MARK: - Field constructors
 
-    private func makeTimePicker(values: inout [String: String]) -> NSView {
+    private func makeTimePicker(label: String? = nil, prefix: String = "", values: inout [String: String]) -> NSView {
+        let hourKey   = prefix.isEmpty ? "hour"   : "\(prefix)Hour"
+        let minuteKey = prefix.isEmpty ? "minute" : "\(prefix)Minute"
+
         let hour = NSPopUpButton(frame: .zero, pullsDown: false)
         hour.removeAllItems()
-        let initH = Int(values["hour"] ?? "9") ?? 9
+        let initH = Int(values[hourKey] ?? "9") ?? 9
         for h in 0..<24 {
             let p = h >= 12 ? "PM" : "AM"
             let d = h == 0 ? 12 : (h > 12 ? h - 12 : h)
@@ -311,25 +351,38 @@ class AutomationBuilder: NSView {
         }
         hour.selectItem(at: initH)
         hour.target = self; hour.action = #selector(fieldChanged)
-        self.hourPicker = hour
 
         let minute = NSPopUpButton(frame: .zero, pullsDown: false)
         minute.removeAllItems()
-        let initM = Int(values["minute"] ?? "0") ?? 0
+        let initM = Int(values[minuteKey] ?? "0") ?? 0
         for m in stride(from: 0, to: 60, by: 5) {
             minute.addItem(withTitle: String(format: ":%02d", m))
             minute.lastItem?.tag = m
         }
         minute.selectItem(at: initM / 5)
         minute.target = self; minute.action = #selector(fieldChanged)
-        self.minutePicker = minute
 
-        values["hour"] = "\(initH)"
-        values["minute"] = "\(initM)"
+        // Store references by prefix
+        switch prefix {
+        case "start": startHourPicker = hour; startMinutePicker = minute
+        case "end":   endHourPicker   = hour; endMinutePicker   = minute
+        default:      self.hourPicker = hour; self.minutePicker  = minute
+        }
 
-        let row = NSStackView(views: [hour, minute])
-        row.orientation = .horizontal; row.spacing = 8
-        return row
+        values[hourKey]   = "\(initH)"
+        values[minuteKey] = "\(initM)"
+
+        let pickers = NSStackView(views: [hour, minute])
+        pickers.orientation = .horizontal; pickers.spacing = 8
+
+        if let label = label {
+            let lbl = Styles.label(label, font: Styles.bodyFont, color: Styles.secondaryLabel)
+            lbl.widthAnchor.constraint(equalToConstant: 34).isActive = true
+            let row = NSStackView(views: [lbl, pickers])
+            row.orientation = .horizontal; row.spacing = 10
+            return row
+        }
+        return pickers
     }
 
     // Fix #3: wider spacing on weekday checkboxes
@@ -355,11 +408,12 @@ class AutomationBuilder: NSView {
         return row
     }
 
-    // Fix #2: app list with visible rounded border
-    private func makeAppPicker(label: String, values: inout [String: String]) -> NSView {
+    // App list with icon, checkbox, and app name per row
+    private func makeAppPicker(label: String, allowAll: Bool = false, values: inout [String: String]) -> NSView {
         let apps = AppDiscoveryService.installedApps()
         let existing = Set((values["apps"] ?? "").split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) })
         appCheckboxes = []
+        appCheckboxNames = []
 
         let scroll = NSScrollView()
         scroll.translatesAutoresizingMaskIntoConstraints = false
@@ -373,24 +427,105 @@ class AutomationBuilder: NSView {
         list.translatesAutoresizingMaskIntoConstraints = false
         scroll.documentView = list
 
-        var cy: CGFloat = 6
-        for name in apps {
-            let cb = NSButton(checkboxWithTitle: name, target: self, action: #selector(fieldChanged))
-            cb.font = Styles.bodyFont
+        let rowHeight: CGFloat = 30
+        var cy: CGFloat = 4
+
+        // "All open apps" row — only shown for quitApps
+        quitAllCheckbox = nil
+        if allowAll {
+            let allRow = NSView()
+            allRow.translatesAutoresizingMaskIntoConstraints = false
+            list.addSubview(allRow)
+
+            let cb = NSButton(checkboxWithTitle: "", target: self, action: #selector(quitAllTapped))
+            cb.state = values["quitAll"] == "true" ? .on : .off
+            cb.translatesAutoresizingMaskIntoConstraints = false
+            allRow.addSubview(cb)
+            quitAllCheckbox = cb
+
+            let lbl = NSTextField(labelWithString: "All open apps")
+            lbl.font = NSFont.systemFont(ofSize: Styles.bodyFont.pointSize, weight: .medium)
+            lbl.translatesAutoresizingMaskIntoConstraints = false
+            allRow.addSubview(lbl)
+
+            NSLayoutConstraint.activate([
+                allRow.topAnchor.constraint(equalTo: list.topAnchor, constant: cy),
+                allRow.leadingAnchor.constraint(equalTo: list.leadingAnchor, constant: 8),
+                allRow.trailingAnchor.constraint(equalTo: list.trailingAnchor, constant: -8),
+                allRow.heightAnchor.constraint(equalToConstant: rowHeight),
+                cb.leadingAnchor.constraint(equalTo: allRow.leadingAnchor),
+                cb.centerYAnchor.constraint(equalTo: allRow.centerYAnchor),
+                lbl.leadingAnchor.constraint(equalTo: cb.trailingAnchor, constant: 10),
+                lbl.centerYAnchor.constraint(equalTo: allRow.centerYAnchor),
+            ])
+            cy += rowHeight
+
+            // Divider below the "All open apps" row
+            let div = NSBox()
+            div.boxType = .separator
+            div.translatesAutoresizingMaskIntoConstraints = false
+            list.addSubview(div)
+            NSLayoutConstraint.activate([
+                div.topAnchor.constraint(equalTo: list.topAnchor, constant: cy),
+                div.leadingAnchor.constraint(equalTo: list.leadingAnchor, constant: 8),
+                div.trailingAnchor.constraint(equalTo: list.trailingAnchor, constant: -8),
+            ])
+            cy += 8
+        }
+
+        for (name, path) in apps {
+            let row = NSView()
+            row.translatesAutoresizingMaskIntoConstraints = false
+            list.addSubview(row)
+
+            // Checkbox (no title — name is tracked in appCheckboxNames)
+            let cb = NSButton(checkboxWithTitle: "", target: self, action: #selector(fieldChanged))
             if existing.contains(name) { cb.state = .on }
             cb.translatesAutoresizingMaskIntoConstraints = false
-            list.addSubview(cb); appCheckboxes.append(cb)
+            row.addSubview(cb)
+            appCheckboxes.append(cb)
+            appCheckboxNames.append(name)
+
+            // App icon from the bundle on disk
+            let iconView = NSImageView()
+            iconView.image = NSWorkspace.shared.icon(forFile: path)
+            iconView.imageScaling = .scaleProportionallyUpOrDown
+            iconView.wantsLayer = true
+            iconView.layer?.cornerRadius = 4
+            iconView.translatesAutoresizingMaskIntoConstraints = false
+            row.addSubview(iconView)
+
+            // App name label
+            let nameLabel = NSTextField(labelWithString: name)
+            nameLabel.font = Styles.bodyFont
+            nameLabel.translatesAutoresizingMaskIntoConstraints = false
+            row.addSubview(nameLabel)
+
             NSLayoutConstraint.activate([
-                cb.topAnchor.constraint(equalTo: list.topAnchor, constant: cy),
-                cb.leadingAnchor.constraint(equalTo: list.leadingAnchor, constant: 10),
+                row.topAnchor.constraint(equalTo: list.topAnchor, constant: cy),
+                row.leadingAnchor.constraint(equalTo: list.leadingAnchor, constant: 8),
+                row.trailingAnchor.constraint(equalTo: list.trailingAnchor, constant: -8),
+                row.heightAnchor.constraint(equalToConstant: rowHeight),
+
+                cb.leadingAnchor.constraint(equalTo: row.leadingAnchor),
+                cb.centerYAnchor.constraint(equalTo: row.centerYAnchor),
+
+                iconView.leadingAnchor.constraint(equalTo: cb.trailingAnchor, constant: 6),
+                iconView.centerYAnchor.constraint(equalTo: row.centerYAnchor),
+                iconView.widthAnchor.constraint(equalToConstant: 20),
+                iconView.heightAnchor.constraint(equalToConstant: 20),
+
+                nameLabel.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 8),
+                nameLabel.centerYAnchor.constraint(equalTo: row.centerYAnchor),
+                nameLabel.trailingAnchor.constraint(lessThanOrEqualTo: row.trailingAnchor),
             ])
-            cy += 24
+            cy += rowHeight
         }
-        let ch = list.heightAnchor.constraint(equalToConstant: cy + 6)
+        let ch = list.heightAnchor.constraint(equalToConstant: cy + 4)
         ch.priority = .defaultLow; ch.isActive = true
 
         NSLayoutConstraint.activate([
-            scroll.heightAnchor.constraint(equalToConstant: 150),
+            scroll.heightAnchor.constraint(equalToConstant: 200),
             list.leadingAnchor.constraint(equalTo: scroll.leadingAnchor),
             list.trailingAnchor.constraint(equalTo: scroll.trailingAnchor),
             list.widthAnchor.constraint(equalTo: scroll.widthAnchor),
@@ -416,7 +551,7 @@ class AutomationBuilder: NSView {
     private func makeFolderPicker(label: String, key: String, values: inout [String: String]) -> NSView {
         let btn = NSButton(title: "\(label)\u{2026}", target: self, action: #selector(chooseFolderTapped(_:)))
         btn.bezelStyle = .rounded
-        objc_setAssociatedObject(btn, "folderKey", key, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        btn.identifier = NSUserInterfaceItemIdentifier(key)
         let existing = values[key] ?? ""
         let lbl = Styles.label(
             existing.isEmpty ? "No folder selected" : (existing as NSString).lastPathComponent,
@@ -443,7 +578,13 @@ class AutomationBuilder: NSView {
         scroll.documentView = tv
         self.urlTextView = tv
         scroll.heightAnchor.constraint(equalToConstant: 70).isActive = true
-        return scroll
+
+        let hint = Styles.label("One URL per line — https://example.com", font: Styles.captionFont, color: Styles.tertiaryLabel)
+        let stack = NSStackView(views: [scroll, hint])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 4
+        return stack
     }
 
     private func makeNumberInput(label: String, placeholder: String, unit: String, key: String, values: inout [String: String]) -> NSView {
@@ -452,6 +593,11 @@ class AutomationBuilder: NSView {
         field.stringValue = values[key] ?? ""
         field.target = self; field.action = #selector(fieldChanged)
         field.widthAnchor.constraint(equalToConstant: 80).isActive = true
+        let fmt = NumberFormatter()
+        fmt.numberStyle = .none
+        fmt.minimum = 0
+        fmt.allowsFloats = false
+        field.formatter = fmt
         numberFields[key] = field
         if values[key] == nil { values[key] = placeholder }
 
@@ -501,8 +647,12 @@ class AutomationBuilder: NSView {
 
     private func collectTriggerValues() -> [String: String] {
         var v = triggerValues
-        if let h = hourPicker?.selectedItem { v["hour"] = "\(h.tag)" }
-        if let m = minutePicker?.selectedItem { v["minute"] = "\(m.tag)" }
+        if let h = hourPicker?.selectedItem       { v["hour"]        = "\(h.tag)" }
+        if let m = minutePicker?.selectedItem     { v["minute"]      = "\(m.tag)" }
+        if let h = startHourPicker?.selectedItem  { v["startHour"]   = "\(h.tag)" }
+        if let m = startMinutePicker?.selectedItem { v["startMinute"] = "\(m.tag)" }
+        if let h = endHourPicker?.selectedItem    { v["endHour"]     = "\(h.tag)" }
+        if let m = endMinutePicker?.selectedItem  { v["endMinute"]   = "\(m.tag)" }
         if !weekdayButtons.isEmpty {
             v["weekdays"] = weekdayButtons.filter { $0.state == .on }.map { "\($0.tag)" }.joined(separator: ",")
         }
@@ -514,8 +664,13 @@ class AutomationBuilder: NSView {
 
     private func collectActionValues() -> [String: String] {
         var v = actionValues
+        if quitAllCheckbox?.state == .on {
+            v["quitAll"] = "true"
+        } else {
+            v.removeValue(forKey: "quitAll")
+        }
         if !appCheckboxes.isEmpty {
-            let selected = appCheckboxes.filter { $0.state == .on }.map { $0.title }
+            let selected = zip(appCheckboxes, appCheckboxNames).filter { $0.0.state == .on }.map { $0.1 }
             v["apps"] = selected.isEmpty ? "" : selected.joined(separator: ",")
         }
         if let text = urlTextView?.string, !text.isEmpty { v["urls"] = text }
@@ -536,7 +691,9 @@ class AutomationBuilder: NSView {
         let ac = collectActionValues()
         let when = selectedTrigger.sentenceFragment(config: tc)
         let what = selectedAction.sentenceFragment(config: ac)
-        sentenceLabel.stringValue = "\(when), \(what)"
+        let sentence = "\(when), \(what)"
+        sentenceLabel?.stringValue = sentence
+        builderTitleLabel?.stringValue = sentence
     }
 
     // MARK: - Actions
@@ -547,6 +704,19 @@ class AutomationBuilder: NSView {
         selectedTrigger = TriggerType.allCases[idx]
         triggerValues = [:]
         buildTriggerFields()
+
+        // Auto-switch action if it's incompatible with the newly chosen trigger
+        if !selectedAction.compatibleTriggers.contains(selectedTrigger) {
+            if let compat = ActionType.allCases.first(where: { $0.compatibleTriggers.contains(selectedTrigger) }),
+               let compatIdx = ActionType.allCases.firstIndex(of: compat) {
+                selectedAction = compat
+                actionValues = [:]
+                actionDropdown.selectItem(at: compatIdx)
+                buildActionFields()
+            }
+        }
+
+        updateDropdownCompatibility()
         updateSentence()
     }
 
@@ -556,10 +726,45 @@ class AutomationBuilder: NSView {
         selectedAction = ActionType.allCases[idx]
         actionValues = [:]
         buildActionFields()
+
+        // Auto-switch trigger if it's incompatible with the newly chosen action
+        if !selectedAction.compatibleTriggers.contains(selectedTrigger) {
+            if let compat = TriggerType.allCases.first(where: { selectedAction.compatibleTriggers.contains($0) }),
+               let compatIdx = TriggerType.allCases.firstIndex(of: compat) {
+                selectedTrigger = compat
+                triggerValues = [:]
+                triggerDropdown.selectItem(at: compatIdx)
+                buildTriggerFields()
+            }
+        }
+
+        updateDropdownCompatibility()
         updateSentence()
     }
 
+    /// Grays out dropdown items that are incompatible with the current selection on the other side.
+    private func updateDropdownCompatibility() {
+        for (i, action) in ActionType.allCases.enumerated() {
+            actionDropdown.item(at: i)?.isEnabled = action.compatibleTriggers.contains(selectedTrigger)
+        }
+        for (i, trigger) in TriggerType.allCases.enumerated() {
+            triggerDropdown.item(at: i)?.isEnabled = selectedAction.compatibleTriggers.contains(trigger)
+        }
+    }
+
     @objc private func fieldChanged() { updateSentence() }
+
+    @objc private func quitAllTapped() {
+        let isAll = quitAllCheckbox?.state == .on
+        // Gray out individual app checkboxes when "All open apps" is active
+        appCheckboxes.forEach { $0.isEnabled = !isAll }
+        if isAll {
+            actionValues["quitAll"] = "true"
+        } else {
+            actionValues.removeValue(forKey: "quitAll")
+        }
+        updateSentence()
+    }
 
     @objc private func chooseFileTapped() {
         let panel = NSOpenPanel()
@@ -573,7 +778,7 @@ class AutomationBuilder: NSView {
     }
 
     @objc private func chooseFolderTapped(_ sender: NSButton) {
-        guard let key = objc_getAssociatedObject(sender, "folderKey") as? String else { return }
+        guard let key = sender.identifier?.rawValue else { return }
         let panel = NSOpenPanel()
         panel.canChooseFiles = false; panel.canChooseDirectories = true; panel.allowsMultipleSelection = false
         if panel.runModal() == .OK, let url = panel.url {
@@ -601,6 +806,13 @@ class AutomationBuilder: NSView {
         } else if selectedTrigger == .interval {
             guard let intervalStr = tc["interval"], let mins = Int(intervalStr), mins > 0 else {
                 showError("Please enter a number of minutes (must be > 0)"); return
+            }
+        }
+
+        // moveFiles with a non-fileAppears trigger needs an explicit source folder
+        if selectedAction == .moveFiles && selectedTrigger != .fileAppears {
+            if (ac["sourceFolder"] ?? "").isEmpty {
+                showError("Please choose a folder to move files from"); return
             }
         }
 
@@ -635,8 +847,10 @@ class AutomationBuilder: NSView {
     private func clearFieldRefs(forTrigger: Bool) {
         if forTrigger {
             hourPicker = nil; minutePicker = nil; weekdayButtons = []
+            startHourPicker = nil; startMinutePicker = nil
+            endHourPicker   = nil; endMinutePicker   = nil
         } else {
-            appCheckboxes = []; filePathLabel = nil; urlTextView = nil
+            appCheckboxes = []; appCheckboxNames = []; quitAllCheckbox = nil; filePathLabel = nil; urlTextView = nil
             textFields = [:]; dropdowns = [:]
         }
         if forTrigger {
@@ -661,7 +875,7 @@ class AutomationBuilder: NSView {
         var h: CGFloat = 0
         for f in fields {
             switch f {
-            case .timePicker: h += 34
+            case .timePicker, .startTimePicker, .endTimePicker: h += 34
             case .weekdayPicker: h += 30
             case .appPicker: h += 160
             case .filePicker, .folderPicker: h += 34

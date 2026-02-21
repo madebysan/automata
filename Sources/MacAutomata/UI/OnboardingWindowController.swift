@@ -24,7 +24,7 @@ class OnboardingWindowController: NSObject, NSWindowDelegate {
             styleMask: [.titled, .closable],
             backing: .buffered, defer: false
         )
-        w.title = "Welcome to Mac Automata"
+        w.title = "Welcome to Automata"
         w.center()
         w.isReleasedWhenClosed = false
         w.delegate = self
@@ -39,21 +39,20 @@ class OnboardingWindowController: NSObject, NSWindowDelegate {
 
         // App icon
         let iconView = NSImageView()
-        if let img = NSImage(systemSymbolName: "gearshape.2", accessibilityDescription: "Mac Automata") {
-            let config = NSImage.SymbolConfiguration(pointSize: 48, weight: .medium)
-            iconView.image = img.withSymbolConfiguration(config)
-            iconView.contentTintColor = .controlAccentColor
-        }
+        iconView.image = NSApp.applicationIconImage
+        iconView.imageScaling = .scaleProportionallyUpOrDown
         iconView.translatesAutoresizingMaskIntoConstraints = false
         outer.addSubview(iconView)
         NSLayoutConstraint.activate([
             iconView.topAnchor.constraint(equalTo: outer.topAnchor, constant: y),
             iconView.centerXAnchor.constraint(equalTo: outer.centerXAnchor),
+            iconView.widthAnchor.constraint(equalToConstant: 64),
+            iconView.heightAnchor.constraint(equalToConstant: 64),
         ])
         y += 64
 
         // Welcome title
-        let title = Styles.label("Welcome to Mac Automata", font: NSFont.systemFont(ofSize: 24, weight: .bold))
+        let title = Styles.label("Welcome to Automata", font: NSFont.systemFont(ofSize: 24, weight: .bold))
         title.alignment = .center
         title.translatesAutoresizingMaskIntoConstraints = false
         outer.addSubview(title)
@@ -66,7 +65,7 @@ class OnboardingWindowController: NSObject, NSWindowDelegate {
 
         // Description
         let desc = Styles.label(
-            "Set up simple automations for your Mac \u{2014} no scripting needed. Pick a trigger, pick an action, and Mac Automata handles the rest.\n\nTo work properly, the app needs a few permissions:",
+            "Set up simple automations for your Mac \u{2014} no scripting needed. Pick a trigger, pick an action, and Automata handles the rest.\n\nTo work properly, the app needs a few permissions:",
             font: Styles.bodyFont, color: Styles.secondaryLabel
         )
         desc.alignment = .center

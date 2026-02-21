@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build Mac Automata and package as a DMG for distribution.
+# Build Automata and package as a DMG for distribution.
 # Usage: ./scripts/build-dmg.sh
 #
 # Prerequisites:
@@ -8,11 +8,11 @@
 
 set -euo pipefail
 
-APP_NAME="Mac Automata"
+APP_NAME="Automata"
 BUNDLE_ID="com.macautomata.app"
 BUILD_DIR=".build/release"
 APP_DIR="$BUILD_DIR/$APP_NAME.app"
-DMG_NAME="Mac-Automata.dmg"
+DMG_NAME="Automata.dmg"
 
 echo "==> Building release..."
 swift build -c release
@@ -27,6 +27,9 @@ cp "$BUILD_DIR/MacAutomata" "$APP_DIR/Contents/MacOS/MacAutomata"
 
 # Copy Info.plist
 cp Info.plist "$APP_DIR/Contents/Info.plist"
+
+# Copy app icon
+cp Resources/AppIcon.icns "$APP_DIR/Contents/Resources/AppIcon.icns"
 
 # Copy entitlements
 cp Entitlements.entitlements "$APP_DIR/Contents/Resources/"
@@ -55,6 +58,7 @@ rm -rf "$DMG_STAGING"
 mkdir -p "$DMG_STAGING"
 cp -R "$APP_DIR" "$DMG_STAGING/"
 cp README.md "$DMG_STAGING/" 2>/dev/null || true
+cp LICENSE "$DMG_STAGING/" 2>/dev/null || true
 ln -s /Applications "$DMG_STAGING/Applications"
 
 hdiutil create -volname "$APP_NAME" \

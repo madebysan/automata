@@ -95,6 +95,37 @@ class ManifestService {
         return false
     }
 
+    // MARK: - Pause / Resume
+
+    /// Pause all enabled automations. Saves their IDs so resumeAll() can restore them.
+    func pauseAll() {
+        let enabledIds = manifest.automations.filter { $0.isEnabled }.map { $0.id }
+        manifest.pausedAutomationIds = enabledIds
+        manifest.isPaused = true
+        // Disable each in launchd without changing isEnabled on the automations
+        for id in enabledIds {
+            if let automation = automation(byId: id) {
+                LaunchdService.disable(automation: automation)
+            }
+        }
+        save()
+        Log.info("Paused all automations (\(enabledIds.count) disabled)")
+    }
+
+    /// Resume previously paused automations. Only re-enables ones that still exist and are still isEnabled.
+    func resumeAll() {
+        let idsToResume = manifest.pausedAutomationIds
+        manifest.isPaused = false
+        manifest.pausedAutomationIds = []
+        for id in idsToResume {
+            if let automation = automation(byId: id), automation.isEnabled {
+                _ = LaunchdService.enable(automation: automation)
+            }
+        }
+        save()
+        Log.info("Resumed automations (\(idsToResume.count) candidates)")
+    }
+
     // MARK: - Persistence
 
     /// Write the manifest to disk.

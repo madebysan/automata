@@ -91,6 +91,42 @@ enum TemplateLibrary {
         // ── Focus & Wind Down ──
 
         Template(
+            id: "night-mode",
+            name: "Night Mode",
+            subtitle: "Dark mode 8 PM → 7 AM every day, reverts to light in the morning",
+            icon: "moon.fill",
+            color: .systemIndigo,
+            category: .focus,
+            triggerType: .timeRange,
+            triggerConfig: ["startHour": "20", "startMinute": "0", "endHour": "7", "endMinute": "0", "weekdays": "1,2,3,4,5,6,7"],
+            actionType: .darkMode,
+            actionConfig: ["mode": "dark"]
+        ),
+        Template(
+            id: "deep-work",
+            name: "Deep Work Block",
+            subtitle: "Quit Slack, Messages, Discord 9 AM–12 PM weekdays, reopens after",
+            icon: "eye.slash",
+            color: .systemPurple,
+            category: .focus,
+            triggerType: .timeRange,
+            triggerConfig: ["startHour": "9", "startMinute": "0", "endHour": "12", "endMinute": "0", "weekdays": "2,3,4,5,6"],
+            actionType: .quitApps,
+            actionConfig: ["apps": "Slack,Messages,Discord"]
+        ),
+        Template(
+            id: "work-hours-awake",
+            name: "Stay Awake at Work",
+            subtitle: "Keep Mac awake 9 AM–6 PM weekdays, allows sleep outside hours",
+            icon: "cup.and.heat.waves",
+            color: .systemOrange,
+            category: .focus,
+            triggerType: .timeRange,
+            triggerConfig: ["startHour": "9", "startMinute": "0", "endHour": "18", "endMinute": "0", "weekdays": "2,3,4,5,6"],
+            actionType: .keepAwake,
+            actionConfig: [:]
+        ),
+        Template(
             id: "end-of-day",
             name: "End of Day Shutdown",
             subtitle: "Quit your chosen apps at 6 PM every weekday",
@@ -102,56 +138,20 @@ enum TemplateLibrary {
             actionType: .quitApps,
             actionConfig: ["apps": ""]
         ),
-        Template(
-            id: "focus-mode",
-            name: "Focus Mode",
-            subtitle: "Quit Messages, Slack, and Discord at 9 AM weekdays",
-            icon: "eye.slash",
-            color: .systemPurple,
-            category: .focus,
-            triggerType: .scheduledTime,
-            triggerConfig: ["hour": "9", "minute": "0", "weekdays": "2,3,4,5,6"],
-            actionType: .quitApps,
-            actionConfig: ["apps": "Messages,Slack,Discord"]
-        ),
-        Template(
-            id: "dark-mode-night",
-            name: "Dark Mode at Night",
-            subtitle: "Turn on Dark Mode at 8 PM every day",
-            icon: "moon.fill",
-            color: .systemIndigo,
-            category: .focus,
-            triggerType: .scheduledTime,
-            triggerConfig: ["hour": "20", "minute": "0", "weekdays": "2,3,4,5,6,7,1"],
-            actionType: .darkMode,
-            actionConfig: ["mode": "dark"]
-        ),
-        Template(
-            id: "light-mode-morning",
-            name: "Light Mode in Morning",
-            subtitle: "Turn on Light Mode at 7 AM every day",
-            icon: "sun.max.fill",
-            color: .systemYellow,
-            category: .focus,
-            triggerType: .scheduledTime,
-            triggerConfig: ["hour": "7", "minute": "0", "weekdays": "2,3,4,5,6,7,1"],
-            actionType: .darkMode,
-            actionConfig: ["mode": "light"]
-        ),
 
         // ── Volume ──
 
         Template(
             id: "quiet-hours",
             name: "Quiet Hours",
-            subtitle: "Mute volume to 0% at 11 PM every day",
+            subtitle: "Mutes to 0% at 11 PM every day, restores to 50% at 7 AM",
             icon: "speaker.slash",
             color: .systemGray,
             category: .volume,
-            triggerType: .scheduledTime,
-            triggerConfig: ["hour": "23", "minute": "0", "weekdays": "2,3,4,5,6,7,1"],
+            triggerType: .timeRange,
+            triggerConfig: ["startHour": "23", "startMinute": "0", "endHour": "7", "endMinute": "0", "weekdays": "1,2,3,4,5,6,7"],
             actionType: .setVolume,
-            actionConfig: ["volume": "0"]
+            actionConfig: ["volume": "0", "revertVolume": "50"]
         ),
         Template(
             id: "morning-volume",

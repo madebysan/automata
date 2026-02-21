@@ -9,6 +9,7 @@ enum TriggerType: String, Codable, CaseIterable {
     case onLogin = "on-login"
     case fileAppears = "file-appears"
     case driveMount = "drive-mount"
+    case timeRange = "time-range"
 
     // MARK: - Display
 
@@ -19,6 +20,7 @@ enum TriggerType: String, Codable, CaseIterable {
         case .onLogin: return "On login"
         case .fileAppears: return "When a file appears in..."
         case .driveMount: return "When a drive is mounted"
+        case .timeRange: return "During a time range"
         }
     }
 
@@ -29,6 +31,7 @@ enum TriggerType: String, Codable, CaseIterable {
         case .onLogin: return "power"
         case .fileAppears: return "eye"
         case .driveMount: return "externaldrive.connected.to.line.below"
+        case .timeRange: return "clock.arrow.2.circlepath"
         }
     }
 
@@ -39,6 +42,7 @@ enum TriggerType: String, Codable, CaseIterable {
         case .onLogin: return "Runs once when you log in"
         case .fileAppears: return "Fires when a folder's contents change"
         case .driveMount: return "Fires when a USB drive or SD card is plugged in"
+        case .timeRange: return "Applies an action at start time, reverts it at end time"
         }
     }
 
@@ -52,11 +56,13 @@ enum TriggerType: String, Codable, CaseIterable {
         case .interval:
             return [.numberInput(label: "Repeat every", placeholder: "30", unit: "minutes", key: "interval")]
         case .onLogin:
-            return [] // No config needed
+            return []
         case .fileAppears:
             return [.folderPicker(label: "Watch this folder", key: "watchFolder")]
         case .driveMount:
-            return [] // No config needed
+            return []
+        case .timeRange:
+            return [.startTimePicker, .endTimePicker, .weekdayPicker]
         }
     }
 
@@ -77,6 +83,10 @@ enum TriggerType: String, Codable, CaseIterable {
             return ["WatchPaths": [path]]
         case .driveMount:
             return ["StartOnMount": true]
+        case .timeRange:
+            // LaunchdService handles timeRange by installing two separate plists.
+            // plistEntries is not called for this trigger type.
+            return [:]
         }
     }
 
@@ -99,6 +109,13 @@ enum TriggerType: String, Codable, CaseIterable {
             return "When files appear in \(folder)"
         case .driveMount:
             return "When a drive is mounted"
+        case .timeRange:
+            let startH = Int(config["startHour"] ?? "9") ?? 9
+            let startM = Int(config["startMinute"] ?? "0") ?? 0
+            let endH = Int(config["endHour"] ?? "18") ?? 18
+            let endM = Int(config["endMinute"] ?? "0") ?? 0
+            let days = formatDays(config)
+            return "\(days) between \(formatHourMinute(startH, startM)) and \(formatHourMinute(endH, endM))"
         }
     }
 
@@ -107,6 +124,10 @@ enum TriggerType: String, Codable, CaseIterable {
     private func formatTime(_ config: [String: String]) -> String {
         let hour = Int(config["hour"] ?? "9") ?? 9
         let minute = Int(config["minute"] ?? "0") ?? 0
+        return formatHourMinute(hour, minute)
+    }
+
+    private func formatHourMinute(_ hour: Int, _ minute: Int) -> String {
         let period = hour >= 12 ? "PM" : "AM"
         let displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour)
         return String(format: "%d:%02d %@", displayHour, minute, period)

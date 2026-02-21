@@ -58,7 +58,7 @@ enum Styles {
 
     // MARK: - Window Sizes
 
-    static let mainWindowSize = NSSize(width: 520, height: 720)
+    static let mainWindowSize = NSSize(width: 900, height: 720)
     static let configSheetSize = NSSize(width: 480, height: 400)
 
     // MARK: - Helpers
@@ -98,12 +98,17 @@ enum Styles {
         return box
     }
 
-    /// A primary action button styled as the key equivalent (accent-tinted).
+    /// A primary action button — always accent-colored regardless of window focus.
+    /// Uses attributedTitle to guarantee white text (contentTintColor is unreliable in AppKit).
     static func accentButton(_ title: String, target: AnyObject?, action: Selector) -> NSButton {
-        let button = NSButton(title: title, target: target, action: action)
+        let button = NSButton(title: "", target: target, action: action)
         button.bezelStyle = .rounded
+        button.bezelColor = .controlAccentColor
+        button.attributedTitle = NSAttributedString(
+            string: title,
+            attributes: [.foregroundColor: NSColor.white, .font: NSFont.systemFont(ofSize: 13, weight: .medium)]
+        )
         button.keyEquivalent = "\r"
-        button.controlSize = .large
         return button
     }
 }

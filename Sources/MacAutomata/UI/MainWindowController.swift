@@ -37,6 +37,7 @@ class MainWindowController: NSObject, NSWindowDelegate {
             showTemplates()
         }
 
+        sizeWindowToContent()
         w.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
@@ -45,25 +46,66 @@ class MainWindowController: NSObject, NSWindowDelegate {
         NSApp.setActivationPolicy(.accessory)
     }
 
+    /// Resize the window to fit its content, capped at 80% of screen height.
+    private func sizeWindowToContent() {
+        guard let w = window, let contentView = w.contentView else { return }
+
+        // Let the layout pass complete
+        contentView.layoutSubtreeIfNeeded()
+
+        // Find the scroll view's document view to get the actual content height
+        let contentHeight: CGFloat
+        if let scrollView = contentView as? NSScrollView,
+           let docView = scrollView.documentView {
+            contentHeight = docView.frame.height
+        } else if let scrollView = contentView.subviews.compactMap({ $0 as? NSScrollView }).first,
+                  let docView = scrollView.documentView {
+            contentHeight = docView.frame.height
+        } else {
+            contentHeight = contentView.fittingSize.height
+        }
+
+        // Add title bar height (~28pt)
+        let titleBarHeight: CGFloat = 28
+        let idealHeight = contentHeight + titleBarHeight
+
+        // Cap at 80% of screen height
+        let maxHeight = (NSScreen.main?.visibleFrame.height ?? 800) * 0.8
+        let finalHeight = min(idealHeight, maxHeight)
+
+        // Resize from top-left (keep the top edge in place)
+        var frame = w.frame
+        let oldTop = frame.origin.y + frame.size.height
+        frame.size.height = finalHeight
+        frame.size.width = max(frame.size.width, Styles.mainWindowSize.width)
+        frame.origin.y = oldTop - finalHeight
+        w.setFrame(frame, display: true, animate: true)
+    }
+
     // MARK: - Views
 
     private func showTemplates() {
         let templates = TemplatesView()
 
         templates.onTemplateSelected = { [weak self] template in
-            if template.needsInput {
-                // Open builder pre-filled so user can complete the missing fields
-                let automation = Automation(
-                    triggerType: template.triggerType,
-                    triggerConfig: template.triggerConfig,
-                    actionType: template.actionType,
-                    actionConfig: template.actionConfig
-                )
-                self?.showBuilder(editing: automation)
-            } else {
-                // Fully configured — install immediately
-                self?.quickInstall(template: template)
-            }
+            // Always open builder pre-filled so user can review and confirm before saving
+            let automation = Automation(
+                triggerType: template.triggerType,
+                triggerConfig: template.triggerConfig,
+                actionType: template.actionType,
+                actionConfig: template.actionConfig
+            )
+            self?.showBuilder(editing: automation)
+        }
+
+        templates.onSuggestionSelected = { [weak self] suggestion in
+            let automation = Automation(
+                triggerType: suggestion.triggerType,
+                triggerConfig: suggestion.triggerConfig,
+                actionType: suggestion.actionType,
+                actionConfig: suggestion.actionConfig
+            )
+            self?.showBuilder(editing: automation)
         }
 
         templates.onCustom = { [weak self] in
@@ -72,6 +114,11 @@ class MainWindowController: NSObject, NSWindowDelegate {
 
         window?.contentView = templates
         window?.title = "New Automation"
+        DispatchQueue.main.async {
+            // Don't auto-focus the NL text field — let the user click into it
+            self.window?.makeFirstResponder(nil)
+            self.sizeWindowToContent()
+        }
     }
 
     private func showBuilder(editing automation: Automation?) {
@@ -95,6 +142,7 @@ class MainWindowController: NSObject, NSWindowDelegate {
 
         window?.contentView = builder
         window?.title = automation != nil ? "Configure Automation" : "Custom Automation"
+        DispatchQueue.main.async { self.sizeWindowToContent() }
     }
 
     // MARK: - Install

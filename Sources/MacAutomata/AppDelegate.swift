@@ -20,10 +20,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             onboardingController?.show()
         }
 
-        Log.info("Mac Automata launched")
+        Log.info("Automata launched")
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        Log.info("Mac Automata quit")
+        Log.info("Automata quit")
     }
 }

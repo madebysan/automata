@@ -1,6 +1,6 @@
 import Cocoa
 
-// Mac Automata — menu bar automation app.
+// Automata — menu bar automation app.
 // No sandbox (needs launchd access), runs as LSUIElement (no dock icon).
 
 let app = NSApplication.shared
