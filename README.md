@@ -11,19 +11,7 @@ Pick a trigger, pick an action, and Automata installs it as a native macOS sched
 <p align="center"><strong>Version 0.2.0</strong> · macOS 13 (Ventura) or later · Apple Silicon & Intel</p>
 
 <p align="center">
-  <img src="assets/screenshot-new.png" width="280" alt="Create from templates">
-  &nbsp;&nbsp;
-  <img src="assets/screenshot-custom.png" width="280" alt="Custom automation builder">
-  &nbsp;&nbsp;
-  <img src="assets/screenshot-manage.png" width="280" alt="Manage automations">
-</p>
-
-<p align="center">
-  <em>Pick a template</em>
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <em>Or build your own</em>
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <em>Manage active automations</em>
+  <img src="assets/screenshot-new.png" width="600" alt="Create a new automation">
 </p>
 
 > **Important:** Automata is a setup tool, not a runtime. It creates native macOS `launchd` jobs that run whether Automata is open or not. You only need the app when you want to create, edit, or delete an automation.
@@ -33,6 +21,17 @@ Built as a simpler, more focused alternative to Apple Shortcuts for people who w
 ## How It Works
 
 Automata lives in your menu bar. You create automations by combining a **trigger** (when something happens) with an **action** (what to do about it). Once saved, the automation is handed off to macOS and runs independently — even if you quit Automata or restart your Mac.
+
+<p align="center">
+  <img src="assets/screenshot-custom.png" width="420" alt="Custom automation builder">
+  &nbsp;&nbsp;
+  <img src="assets/screenshot-manage.png" width="420" alt="Manage automations">
+</p>
+<p align="center">
+  <em>Build a custom automation</em>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <em>Manage active automations</em>
+</p>
 
 ### Triggers
 
