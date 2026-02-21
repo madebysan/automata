@@ -10,6 +10,8 @@ Pick a trigger, pick an action, and Automata installs it as a native macOS sched
 
 <p align="center"><strong>Version 0.2.0</strong> · macOS 13 (Ventura) or later · Apple Silicon & Intel</p>
 
+<p align="center"><a href="https://github.com/madebysan/automata/releases/latest"><strong>Download Automata</strong></a></p>
+
 <p align="center">
   <img src="assets/screenshot-new.png" width="600" alt="Create a new automation">
 </p>
