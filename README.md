@@ -27,11 +27,6 @@ Automata lives in your menu bar. You create automations by combining a **trigger
   &nbsp;&nbsp;
   <img src="assets/screenshot-manage.png" width="420" alt="Manage automations">
 </p>
-<p align="center">
-  <em>Build a custom automation</em>
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <em>Manage active automations</em>
-</p>
 
 ### Triggers
 
