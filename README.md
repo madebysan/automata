@@ -189,8 +189,8 @@ This means automations keep running even if Automata is quit. The app is only ne
 ## Building from Source
 
 ```bash
-git clone https://github.com/madebysan/mac-automata.git
-cd mac-automata
+git clone https://github.com/madebysan/automata.git
+cd automata
 swift build
 .build/debug/MacAutomata
 ```
