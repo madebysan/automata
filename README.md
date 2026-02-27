@@ -218,6 +218,10 @@ rm -rf ~/.mac-automata
 - macOS 13 (Ventura) or later
 - No dependencies, no frameworks, no package manager packages
 
+## Feedback
+
+Found a bug or have a feature idea? [Open an issue](https://github.com/madebysan/automata/issues).
+
 ## License
 
 MIT
