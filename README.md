@@ -4,9 +4,9 @@
 
 <h1 align="center">Automata</h1>
 
-<p align="center">A macOS menu bar app for setting up personal automations — no scripting required.<br>
+<p align="center">A macOS menu bar app for setting up personal automations – no scripting required.<br>
 Pick a trigger, pick an action, and Automata installs it as a native macOS scheduled job.<br>
-<strong>You can quit the app after setup — your automations keep running on their own.</strong></p>
+<strong>You can quit the app after setup – your automations keep running on their own.</strong></p>
 
 <p align="center"><strong>Version 0.2.0</strong> · macOS 13 (Ventura) or later · Apple Silicon & Intel</p>
 
@@ -22,7 +22,7 @@ Built as a simpler, more focused alternative to Apple Shortcuts for people who w
 
 ## How It Works
 
-Automata lives in your menu bar. You create automations by combining a **trigger** (when something happens) with an **action** (what to do about it). Once saved, the automation is handed off to macOS and runs independently — even if you quit Automata or restart your Mac.
+Automata lives in your menu bar. You create automations by combining a **trigger** (when something happens) with an **action** (what to do about it). Once saved, the automation is handed off to macOS and runs independently – even if you quit Automata or restart your Mac.
 
 <p align="center">
   <img src="assets/screenshot-custom.png" width="420" alt="Custom automation builder">
@@ -67,19 +67,19 @@ Don't want to browse dropdowns? Just describe what you want in plain English:
 > "empty the trash every Sunday at noon"
 > "keep my Mac awake while I'm at work"
 
-Automata parses your description and shows ranked suggestions — pick one and it creates the automation for you. You can also type partial ideas and Automata will suggest the closest matches from its 66 trigger+action combinations.
+Automata parses your description and shows ranked suggestions – pick one and it creates the automation for you. You can also type partial ideas and Automata will suggest the closest matches from its 66 trigger+action combinations.
 
 ### Templates
 
-20 pre-built templates across 7 categories — add with one click or customize before saving:
+20 pre-built templates across 7 categories – add with one click or customize before saving:
 
-**Routines** — Morning Workspace, Open Daily Journal, Startup Apps, Morning Music
-**Focus & Wind Down** — Night Mode (dark 8 PM→7 AM), Deep Work Block (quit Slack/Discord 9–12), Stay Awake at Work, End of Day Shutdown
-**Volume** — Quiet Hours (mute 11 PM→7 AM), Morning Volume
-**Reminders** — Stretch Break, Hydration Reminder, Eye Break (20-20-20)
-**File Organization** — Screenshot Organizer, Downloads Sorter, Weekly Downloads Cleanup, Empty Trash Weekly
-**Web & Links** — Daily Standup, Weekly Review Sites
-**External Drives** — Backup Reminder
+**Routines** – Morning Workspace, Open Daily Journal, Startup Apps, Morning Music
+**Focus & Wind Down** – Night Mode (dark 8 PM→7 AM), Deep Work Block (quit Slack/Discord 9–12), Stay Awake at Work, End of Day Shutdown
+**Volume** – Quiet Hours (mute 11 PM→7 AM), Morning Volume
+**Reminders** – Stretch Break, Hydration Reminder, Eye Break (20-20-20)
+**File Organization** – Screenshot Organizer, Downloads Sorter, Weekly Downloads Cleanup, Empty Trash Weekly
+**Web & Links** – Daily Standup, Weekly Review Sites
+**External Drives** – Backup Reminder
 
 ## Automata vs. Apple Shortcuts
 
@@ -91,10 +91,10 @@ Automata is not trying to replace Shortcuts. It's a focused tool for simple, rep
 |--|-------------|----------------|
 | **Simplicity** | Two dropdowns: "When" + "Do this" | Flowchart editor with blocks, variables, conditions |
 | **Setup time** | One-click templates, 10-second custom setup | Often requires chaining multiple blocks |
-| **Runs without the app** | Automations are native launchd jobs — they run even if Automata isn't open | Shortcuts app must be installed; some triggers need it running |
+| **Runs without the app** | Automations are native launchd jobs – they run even if Automata isn't open | Shortcuts app must be installed; some triggers need it running |
 | **File watching** | Watches folders for new files (launchd WatchPaths) | No native folder-watching trigger |
 | **Drive mount trigger** | Fires when USB/SD card is plugged in | Not available as a trigger |
-| **Transparency** | You can inspect the generated scripts and plists in `~/.mac-automata/` | Black box — no way to see what's running under the hood |
+| **Transparency** | You can inspect the generated scripts and plists in `~/.mac-automata/` | Black box – no way to see what's running under the hood |
 | **No account needed** | Works immediately, no Apple ID or iCloud | Requires iCloud for sync and some features |
 | **Lightweight** | Menu bar icon, ~2 MB, no background daemon | Full app in /Applications, heavier footprint |
 
@@ -109,7 +109,7 @@ Automata is not trying to replace Shortcuts. It's a focused tool for simple, rep
 | **Third-party integrations** | 300+ app integrations via Intents framework | Only system-level actions (apps, files, scripts) |
 | **HomeKit / smart home** | Control lights, locks, thermostats | No smart home support |
 | **iOS sync** | Shortcuts sync across iPhone, iPad, Mac | macOS only |
-| **Data processing** | Text manipulation, math, JSON parsing, API calls | No data processing — just "do this thing" |
+| **Data processing** | Text manipulation, math, JSON parsing, API calls | No data processing – just "do this thing" |
 | **Focus modes** | Toggle system Focus modes (Do Not Disturb, Work, etc.) | Cannot control Focus modes (requires private API) |
 | **App Intents** | Deep integration with apps that expose their actions | Can only open/quit apps, not control them internally |
 | **Sandbox safety** | Runs in Apple's sandbox with permission prompts per action | Scripts run with your full user permissions |
@@ -123,7 +123,7 @@ Use Apple Shortcuts when you need **complex workflows**: "When I arrive at the o
 
 ## Installation
 
-Download the latest `Automata.dmg`, open it, and drag **Automata** to your Applications folder. On first launch, macOS may ask you to confirm opening an app from the internet — click Open.
+Download the latest `Automata.dmg`, open it, and drag **Automata** to your Applications folder. On first launch, macOS may ask you to confirm opening an app from the internet – click Open.
 
 ## Permissions
 
@@ -135,7 +135,7 @@ Automata needs a few macOS permissions to work. These are requested on first lau
 | **Automation (Finder)** | Empty the Trash programmatically | Empty Trash |
 | **Notifications** | Display reminder notifications | Stretch Break, Hydration, Eye Break, Backup Reminder |
 
-These are standard macOS permission prompts. Automata never accesses your data — it just needs permission to run AppleScripts that talk to System Events and Finder.
+These are standard macOS permission prompts. Automata never accesses your data – it just needs permission to run AppleScripts that talk to System Events and Finder.
 
 ## Technical Details
 
@@ -176,13 +176,13 @@ TriggerType.swift       ActionType.swift
 
 ### How scheduling works
 
-Automata doesn't run a background daemon. It generates standard macOS launchd property list files — the same mechanism that macOS itself uses for system services. Once a plist is installed, macOS handles the scheduling natively:
+Automata doesn't run a background daemon. It generates standard macOS launchd property list files – the same mechanism that macOS itself uses for system services. Once a plist is installed, macOS handles the scheduling natively:
 
-- **Scheduled time** automations use `StartCalendarInterval` — fires at a specific hour/minute/weekday
-- **Interval** automations use `StartInterval` — fires every N seconds
-- **Login** automations use `RunAtLoad` — fires once when the launchd agent loads
-- **File watcher** automations use `WatchPaths` — fires when a directory's contents change
-- **Drive mount** automations use `StartOnMount` — fires when a volume is mounted
+- **Scheduled time** automations use `StartCalendarInterval` – fires at a specific hour/minute/weekday
+- **Interval** automations use `StartInterval` – fires every N seconds
+- **Login** automations use `RunAtLoad` – fires once when the launchd agent loads
+- **File watcher** automations use `WatchPaths` – fires when a directory's contents change
+- **Drive mount** automations use `StartOnMount` – fires when a volume is mounted
 
 This means automations keep running even if Automata is quit. The app is only needed for creating and managing automations.
 
