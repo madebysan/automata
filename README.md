@@ -224,4 +224,8 @@ Found a bug or have a feature idea? [Open an issue](https://github.com/madebysan
 
 ## License
 
-MIT
+[MIT](LICENSE)
+
+---
+
+Made by [santiagoalonso.com](https://santiagoalonso.com)
